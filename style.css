@@ -1,0 +1,1093 @@
+/* 
+ * The Daily Chronograph - Editorial Stylesheet
+ * Elegant Black & White Retro-Modern Design System
+ */
+
+/* -----------------------------------------
+   CSS Variables & Themes
+----------------------------------------- */
+:root {
+    --paper-bg: #f4f4f0;
+    /* Vintage warm newsprint paper */
+    --ink-black: #111111;
+    /* Deep carbon ink */
+    --ink-grey: #555555;
+    /* Subtitle grey */
+    --border-color: #222222;
+    /* Bold divider line */
+    --border-light: #cccccc;
+    /* Soft divider line */
+    --shadow-color: rgba(0, 0, 0, 0.08);
+    --selection-bg: #111111;
+    --selection-color: #f4f4f0;
+    --stamp-red: #8b0000;
+    --active-bg: rgba(0, 0, 0, 0.05);
+
+    --font-heading: 'Playfair Display', Georgia, serif;
+    --font-serif: 'Old Standard TT', Georgia, serif;
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-mono: 'Courier Prime', monospace;
+
+    --transition-speed: 0.3s;
+}
+
+/* Night Edition (Theme Override) */
+[data-theme="dark"] {
+    --paper-bg: #121212;
+    /* Deep midnight charcoal */
+    --ink-black: #e4e4e0;
+    /* Warm newsprint white */
+    --ink-grey: #aaaaaa;
+    /* Subtitle grey */
+    --border-color: #e4e4e0;
+    --border-light: #444444;
+    --shadow-color: rgba(255, 255, 255, 0.05);
+    --selection-bg: #e4e4e0;
+    --selection-color: #121212;
+    --stamp-red: #ff3333;
+    --active-bg: rgba(255, 255, 255, 0.08);
+}
+
+/* -----------------------------------------
+   Base & Reset Styles
+----------------------------------------- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--paper-bg);
+    color: var(--ink-black);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    padding: 0 4vw;
+    margin: 0 auto;
+    max-width: 1400px;
+    transition: background-color var(--transition-speed), color var(--transition-speed);
+    position: relative;
+    overflow-x: hidden;
+}
+
+::selection {
+    background-color: var(--selection-bg);
+    color: var(--selection-color);
+}
+
+/* Scrollbar styling - retro style */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--paper-bg);
+    border-left: 1px solid var(--border-light);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--ink-black);
+}
+
+/* Typographic Defaults */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+}
+
+p {
+    margin-bottom: 1rem;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.mono-text {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+/* -----------------------------------------
+   Dividers & Separators
+----------------------------------------- */
+.double-divider {
+    border-top: 4px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    height: 4px;
+    margin: 1.5rem 0;
+    clear: both;
+}
+
+.single-divider {
+    border-top: 1px solid var(--border-color);
+    margin: 1rem 0;
+    clear: both;
+}
+
+/* -----------------------------------------
+   Utility Bar
+----------------------------------------- */
+.utility-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.85rem;
+}
+
+.utility-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--ink-black);
+    padding: 0.3rem 0.8rem;
+    cursor: pointer;
+    margin-left: 0.5rem;
+    transition: all var(--transition-speed);
+}
+
+.utility-btn:hover {
+    background-color: var(--ink-black);
+    color: var(--paper-bg);
+}
+
+/* -----------------------------------------
+   Masthead
+----------------------------------------- */
+.masthead-container {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    align-items: center;
+    padding: 2rem 0;
+    text-align: center;
+}
+
+.masthead-info-left,
+.masthead-info-right {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+}
+
+.masthead-info-left {
+    text-align: left;
+}
+
+.masthead-info-right {
+    text-align: right;
+}
+
+.masthead-title {
+    font-family: var(--font-heading);
+    font-weight: 900;
+    font-size: 4rem;
+    letter-spacing: -2px;
+    line-height: 0.9;
+    text-transform: uppercase;
+}
+
+@media (max-width: 900px) {
+    .masthead-container {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .masthead-info-left,
+    .masthead-info-right {
+        text-align: center;
+        align-items: center;
+    }
+
+    .masthead-title {
+        font-size: 2.8rem;
+    }
+}
+
+/* -----------------------------------------
+   Ticker Widget
+----------------------------------------- */
+.ticker-wrap {
+    display: flex;
+    align-items: center;
+    background: var(--paper-bg);
+    overflow: hidden;
+    height: 2.5rem;
+    border: 1px solid var(--border-color);
+    position: relative;
+}
+
+.ticker-title {
+    background: var(--ink-black);
+    color: var(--paper-bg);
+    padding: 0 1rem;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    z-index: 10;
+}
+
+.ticker {
+    display: flex;
+    width: 100%;
+    overflow: hidden;
+}
+
+.ticker__item {
+    display: inline-block;
+    white-space: nowrap;
+    padding-right: 50px;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    animation: ticker-scroll 25s linear infinite;
+    display: flex;
+    align-items: center;
+}
+
+@keyframes ticker-scroll {
+    0% {
+        transform: translate3d(100%, 0, 0);
+    }
+
+    100% {
+        transform: translate3d(-100%, 0, 0);
+    }
+}
+
+/* -----------------------------------------
+   Main Navigation
+----------------------------------------- */
+.main-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.nav-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.nav-link {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: bold;
+    padding: 0.3rem 0.5rem;
+    border-bottom: 2px solid transparent;
+    transition: all var(--transition-speed);
+}
+
+.nav-link:hover,
+.nav-link.active {
+    border-bottom: 2px solid var(--border-color);
+    background-color: var(--active-bg);
+}
+
+.search-box {
+    display: flex;
+    border: 1px solid var(--border-color);
+    background-color: var(--paper-bg);
+}
+
+.search-box input {
+    border: none;
+    background: none;
+    padding: 0.4rem 0.8rem;
+    font-family: var(--font-mono);
+    color: var(--ink-black);
+    outline: none;
+    font-size: 0.85rem;
+}
+
+.search-box button {
+    background: var(--ink-black);
+    color: var(--paper-bg);
+    border: none;
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+    font-weight: bold;
+    transition: opacity var(--transition-speed);
+}
+
+.search-box button:hover {
+    opacity: 0.9;
+}
+
+/* -----------------------------------------
+   Newspaper Grid Layout
+----------------------------------------- */
+.newspaper-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr 280px;
+    gap: 2rem;
+    margin-top: 1rem;
+    margin-bottom: 3rem;
+}
+
+/* Sidebar separators via vertical lines */
+.sidebar-left {
+    border-right: 1px solid var(--border-light);
+    padding-right: 1.5rem;
+}
+
+.sidebar-right {
+    border-left: 1px solid var(--border-light);
+    padding-left: 1.5rem;
+}
+
+.section-title-serif {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 0.3rem;
+    margin-bottom: 1.2rem;
+    letter-spacing: -0.2px;
+}
+
+/* Responsive Main Layout */
+@media (max-width: 1100px) {
+    .newspaper-layout {
+        grid-template-columns: 1fr 300px;
+    }
+
+    .sidebar-left {
+        display: none;
+        /* Hide left sidebar on mid-size, move flashes inside main layout if needed or hide */
+    }
+}
+
+@media (max-width: 768px) {
+    .newspaper-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar-right {
+        border-left: none;
+        padding-left: 0;
+        border-top: 1px solid var(--border-light);
+        padding-top: 2rem;
+    }
+}
+
+/* -----------------------------------------
+   Sidebar Components: Bulletins & Ads
+----------------------------------------- */
+.bulletin-item {
+    margin-bottom: 1.2rem;
+    font-size: 0.9rem;
+}
+
+.bulletin-meta {
+    font-family: var(--font-mono);
+    color: var(--ink-grey);
+    font-size: 0.8rem;
+    display: block;
+    margin-bottom: 0.2rem;
+}
+
+.bulletin-text {
+    font-family: var(--font-sans);
+    line-height: 1.4;
+}
+
+/* Vintage Ad Card */
+.vintage-ad {
+    margin-top: 3rem;
+    padding: 1.2rem;
+    background-color: var(--paper-bg);
+}
+
+.ad-border {
+    border: 3px double var(--border-color);
+    padding: 1.5rem 1rem;
+    text-align: center;
+}
+
+.ad-title {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.ad-body {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.ad-sub {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--ink-grey);
+}
+
+/* -----------------------------------------
+   Sidebar Right: Opinions & Weather
+----------------------------------------- */
+.opinion-item {
+    margin-bottom: 1.5rem;
+    border-bottom: 1px dashed var(--border-light);
+    padding-bottom: 1rem;
+}
+
+.opinion-item:last-child {
+    border-bottom: none;
+}
+
+.opinion-author {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--ink-black);
+    font-weight: bold;
+    display: block;
+    margin-bottom: 0.4rem;
+}
+
+.opinion-title {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+}
+
+.opinion-lead {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--ink-grey);
+    line-height: 1.4;
+}
+
+/* Meteorological Stamp */
+.weather-detail-card {
+    margin-top: 2rem;
+    border: 1px solid var(--border-color);
+    padding: 1.2rem;
+    text-align: center;
+}
+
+.card-title-serif {
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.8rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.3rem;
+}
+
+.weather-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.weather-temp {
+    font-family: var(--font-heading);
+    font-size: 2.2rem;
+    font-weight: 900;
+}
+
+.weather-desc {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--ink-grey);
+}
+
+.weather-city-input {
+    display: flex;
+    border: 1px solid var(--border-color);
+    margin-top: 0.8rem;
+    width: 100%;
+}
+
+.weather-city-input input {
+    border: none;
+    background: none;
+    padding: 0.3rem 0.5rem;
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--ink-black);
+    outline: none;
+}
+
+.weather-city-input button {
+    border: none;
+    background: var(--ink-black);
+    color: var(--paper-bg);
+    padding: 0.3rem 0.6rem;
+    cursor: pointer;
+    font-size: 0.75rem;
+}
+
+/* -----------------------------------------
+   Articles Grid & News Cards
+----------------------------------------- */
+.articles-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.news-card {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 1.5rem;
+    transition: opacity var(--transition-speed);
+}
+
+.news-card.hero {
+    grid-column: span 2;
+    border-bottom: 3px double var(--border-color);
+    padding-bottom: 2rem;
+}
+
+@media (max-width: 600px) {
+    .articles-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .news-card.hero {
+        grid-column: span 1;
+    }
+}
+
+.card-category {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: var(--ink-black);
+    margin-bottom: 0.5rem;
+    display: inline-block;
+    border: 1px solid var(--border-color);
+    padding: 0.1rem 0.5rem;
+    width: fit-content;
+}
+
+.card-title {
+    font-family: var(--font-heading);
+    font-size: 1.6rem;
+    line-height: 1.15;
+    margin-bottom: 0.8rem;
+    cursor: pointer;
+}
+
+.card-title:hover {
+    text-decoration: underline;
+}
+
+.news-card.hero .card-title {
+    font-size: 2.5rem;
+}
+
+.card-meta {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--ink-grey);
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.bookmark-icon-btn {
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: var(--ink-black);
+    padding: 0.2rem;
+    display: flex;
+    align-items: center;
+    transition: transform 0.2s;
+}
+
+.bookmark-icon-btn:hover {
+    transform: scale(1.2);
+}
+
+.card-img-wrap {
+    width: 100%;
+    margin-bottom: 1.2rem;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    position: relative;
+}
+
+/* Grayscale halftone or high contrast styles for images */
+.card-img-wrap img {
+    width: 100%;
+    height: auto;
+    display: block;
+    filter: grayscale(100%) contrast(140%) brightness(95%);
+    transition: filter var(--transition-speed), transform var(--transition-speed);
+}
+
+.card-img-wrap:hover img {
+    transform: scale(1.02);
+    filter: grayscale(100%) contrast(150%) brightness(100%);
+}
+
+.card-body-preview {
+    font-family: var(--font-serif);
+    font-size: 1.05rem;
+    line-height: 1.5;
+    color: var(--ink-black);
+    margin-bottom: 1rem;
+    text-align: justify;
+}
+
+.news-card.hero .card-body-preview {
+    font-size: 1.15rem;
+}
+
+/* Elegant Drop Cap for the Hero Article */
+.drop-cap::first-letter {
+    font-family: var(--font-heading);
+    font-size: 3.5rem;
+    font-weight: bold;
+    float: left;
+    line-height: 0.8;
+    padding-right: 8px;
+    padding-top: 4px;
+    color: var(--ink-black);
+}
+
+.read-more-btn {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: bold;
+    align-self: flex-start;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.1rem;
+    cursor: pointer;
+    transition: padding-left var(--transition-speed);
+}
+
+.read-more-btn:hover {
+    padding-left: 5px;
+}
+
+/* -----------------------------------------
+   Footer / Newsletter
+----------------------------------------- */
+.footer-layout {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 3rem;
+    padding: 2rem 0;
+}
+
+@media (max-width: 768px) {
+    .footer-layout {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+}
+
+.newsletter-section {
+    position: relative;
+    border: 1px solid var(--border-color);
+    padding: 2rem;
+    background-color: var(--paper-bg);
+}
+
+.newsletter-typewriter .serif-title {
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+}
+
+.newsletter-typewriter p {
+    font-size: 0.8rem;
+    color: var(--ink-grey);
+    margin-bottom: 1.2rem;
+}
+
+.newsletter-form {
+    display: flex;
+    border: 1px solid var(--border-color);
+    background-color: var(--paper-bg);
+}
+
+.newsletter-form input {
+    border: none;
+    background: none;
+    padding: 0.6rem 1rem;
+    font-family: var(--font-mono);
+    color: var(--ink-black);
+    width: 100%;
+    outline: none;
+}
+
+.newsletter-form button {
+    border: none;
+    background: var(--ink-black);
+    color: var(--paper-bg);
+    padding: 0.6rem 1.5rem;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all var(--transition-speed);
+}
+
+.newsletter-form button:hover {
+    background-color: var(--paper-bg);
+    color: var(--ink-black);
+}
+
+.newsletter-status {
+    margin-top: 0.8rem;
+    font-size: 0.8rem;
+    font-weight: bold;
+    min-height: 1.2rem;
+}
+
+/* Rubber Stamp Effect */
+.stamp {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-12deg) scale(0);
+    border: 4px solid var(--stamp-red);
+    color: var(--stamp-red);
+    font-family: var(--font-mono);
+    font-size: 2.2rem;
+    font-weight: 900;
+    padding: 0.5rem 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    border-radius: 8px;
+    opacity: 0;
+    pointer-events: none;
+    background-color: rgba(244, 244, 240, 0.95);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 20;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+[data-theme="dark"] .stamp {
+    background-color: rgba(18, 18, 18, 0.95);
+}
+
+.stamp.active {
+    transform: translate(-50%, -50%) rotate(-12deg) scale(1);
+    opacity: 0.85;
+}
+
+.footer-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.footer-logo {
+    font-size: 1.6rem;
+    font-weight: 900;
+}
+
+.footer-info p {
+    font-size: 0.9rem;
+    color: var(--ink-grey);
+}
+
+.footer-info .mono-text {
+    font-size: 0.75rem;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* -----------------------------------------
+   Article Reader Modal
+----------------------------------------- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1000;
+    transition: opacity var(--transition-speed) ease;
+    padding: 2rem;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-container {
+    background-color: var(--paper-bg);
+    color: var(--ink-black);
+    width: 100%;
+    max-width: 800px;
+    height: 100%;
+    max-height: 85vh;
+    border: 2px solid var(--border-color);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    transform: translateY(20px);
+    transition: transform var(--transition-speed) ease;
+    overflow: hidden;
+}
+
+.modal-overlay.active .modal-container {
+    transform: translateY(0);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.modal-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.control-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--ink-black);
+    padding: 0.2rem 0.6rem;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all var(--transition-speed);
+}
+
+.control-btn:hover {
+    background-color: var(--ink-black);
+    color: var(--paper-bg);
+}
+
+.control-btn.active {
+    background-color: var(--ink-black);
+    color: var(--paper-bg);
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--ink-black);
+    cursor: pointer;
+    padding: 0 0.5rem;
+    transition: transform var(--transition-speed);
+}
+
+.close-btn:hover {
+    transform: scale(1.1);
+}
+
+.modal-body {
+    padding: 2rem 3rem;
+    overflow-y: auto;
+    flex: 1;
+    font-family: var(--font-serif);
+    font-size: 1.15rem;
+    line-height: 1.6;
+    text-align: justify;
+}
+
+.modal-body h2 {
+    font-family: var(--font-heading);
+    font-size: 2.2rem;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    text-align: left;
+}
+
+.modal-body .modal-meta {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--ink-grey);
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 0.8rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.modal-body .modal-img-wrap {
+    border: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+}
+
+.modal-body .modal-img-wrap img {
+    width: 100%;
+    display: block;
+    filter: grayscale(100%) contrast(140%);
+}
+
+.modal-body p {
+    margin-bottom: 1.2rem;
+}
+
+.modal-body p.lead {
+    font-size: 1.3rem;
+    font-weight: bold;
+    line-height: 1.4;
+    font-family: var(--font-serif);
+    margin-bottom: 1.5rem;
+}
+
+.modal-footer {
+    padding: 1rem 2rem;
+}
+
+@media (max-width: 600px) {
+    .modal-overlay {
+        padding: 0.5rem;
+    }
+
+    .modal-container {
+        max-height: 95vh;
+    }
+
+    .modal-body {
+        padding: 1.5rem 1.5rem;
+        font-size: 1.05rem;
+    }
+
+    .modal-body h2 {
+        font-size: 1.6rem;
+    }
+}
+
+/* -----------------------------------------
+   Saved State Overlay / Alert (Toast)
+----------------------------------------- */
+.toast-msg {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background-color: var(--ink-black);
+    color: var(--paper-bg);
+    font-family: var(--font-mono);
+    padding: 0.8rem 1.2rem;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    z-index: 2000;
+    animation: fade-in-out 3s forwards;
+}
+
+@keyframes fade-in-out {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    10% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    90% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+}
+
+/* -----------------------------------------
+   Print Layout Style Sheet
+----------------------------------------- */
+@media print {
+    body {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        font-family: Georgia, serif !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+    }
+
+    .utility-bar,
+    .main-nav,
+    footer,
+    .modal-header,
+    .modal-footer,
+    .modal-controls,
+    .weather-city-input,
+    #live-time,
+    #theme-toggle,
+    #bookmark-toggle-btn {
+        display: none !important;
+    }
+
+    .modal-overlay {
+        position: relative !important;
+        background: none !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        display: block !important;
+        padding: 0 !important;
+        z-index: auto !important;
+    }
+
+    .modal-container {
+        border: none !important;
+        max-height: none !important;
+        height: auto !important;
+        overflow: visible !important;
+        box-shadow: none !important;
+        transform: none !important;
+    }
+
+    .modal-body {
+        overflow: visible !important;
+        padding: 0 !important;
+        font-size: 11pt !important;
+        line-height: 1.5 !important;
+    }
+
+    .modal-body h2 {
+        font-size: 24pt !important;
+    }
+
+    .modal-body img {
+        max-width: 100% !important;
+        page-break-inside: avoid !important;
+    }
+}

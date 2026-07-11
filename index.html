@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Daily Chronograph | Black & White Editorial News</title>
+    <!-- Google Fonts for rich editorial look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500;600;700&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Top Utility Bar: Theme, Search, Bookmark Count -->
+    <header class="utility-bar">
+        <div class="utility-left">
+            <span id="live-time" class="mono-text">SATURDAY, JULY 11, 2026 — 19:23:00</span>
+        </div>
+        <div class="utility-right">
+            <button id="bookmark-toggle-btn" class="utility-btn mono-text">
+                SAVED ARTICLES (<span id="bookmark-count">0</span>)
+            </button>
+            <button id="theme-toggle" class="utility-btn mono-text" aria-label="Toggle Night Edition">
+                NIGHT EDITION
+            </button>
+        </div>
+    </header>
+
+    <!-- Masthead -->
+    <div class="masthead-container">
+        <div class="masthead-info-left mono-text">
+            <div>VOL. CXXIV NO. 42</div>
+            <div id="weather-widget">LONDON 14°C <span class="weather-icon">☁</span></div>
+        </div>
+        <h1 class="masthead-title">THE DAILY CHRONOGRAPH</h1>
+        <div class="masthead-info-right mono-text">
+            <div>PRICE: ONE BIT</div>
+            <div>EST. 1902</div>
+        </div>
+    </div>
+
+    <!-- Double Border Dividers -->
+    <div class="double-divider"></div>
+
+    <!-- Ticker -->
+    <div class="ticker-wrap">
+        <div class="ticker-title mono-text">BULLETINS</div>
+        <div class="ticker">
+            <div class="ticker__item" id="ticker-content">
+                Loading live alerts...
+            </div>
+        </div>
+    </div>
+
+    <div class="single-divider"></div>
+
+    <!-- Navigation & Search -->
+    <nav class="main-nav">
+        <div class="nav-links">
+            <a href="#" class="nav-link active" data-category="all">FRONT PAGE</a>
+            <a href="#" class="nav-link" data-category="world">WORLD</a>
+            <a href="#" class="nav-link" data-category="technology">TECHNOLOGY</a>
+            <a href="#" class="nav-link" data-category="culture">CULTURE</a>
+            <a href="#" class="nav-link" data-category="opinion">OPINION</a>
+            <a href="#" class="nav-link" data-category="saved">SAVED</a>
+        </div>
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="Search archive..." aria-label="Search articles">
+            <button id="search-btn" class="mono-text">FIND</button>
+        </div>
+    </nav>
+
+    <div class="double-divider"></div>
+
+    <!-- Main Content Layout -->
+    <main class="newspaper-layout">
+        <!-- Sidebar Left: Quick Bulletins -->
+        <aside class="sidebar-left">
+            <h2 class="section-title-serif">LATEST FLASHES</h2>
+            <div class="bulletins-container" id="bulletins-list">
+                <!-- Bulletins populated by app.js -->
+            </div>
+
+            <div class="vintage-ad">
+                <div class="ad-border">
+                    <p class="ad-title mono-text">THE CHRONOGRAPH CO.</p>
+                    <p class="ad-body">FINE INKS & STATIONERY</p>
+                    <span class="ad-sub">Est. 1888 — Pure Quality</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Center Grid (Articles) -->
+        <div class="articles-grid" id="main-articles-grid">
+            <!-- Articles populated dynamically by app.js -->
+        </div>
+
+        <!-- Sidebar Right: Opinion and Weather Details -->
+        <aside class="sidebar-right">
+            <h2 class="section-title-serif">OPINION & EDITORIAL</h2>
+            <div class="opinion-container" id="opinion-list">
+                <!-- Opinion articles populated by app.js -->
+            </div>
+
+            <div class="weather-detail-card">
+                <h3 class="card-title-serif">METEOROLOGICAL STAMP</h3>
+                <div class="weather-box">
+                    <span class="weather-temp" id="widget-temp">14°C</span>
+                    <span class="weather-desc" id="widget-desc">OVERCAST MIST</span>
+                    <div class="weather-city-input">
+                        <input type="text" id="weather-city" placeholder="Enter city..."
+                            aria-label="Weather city input">
+                        <button id="weather-city-btn" class="mono-text">UPDATE</button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Footer Area / Newsletter -->
+    <footer>
+        <div class="double-divider"></div>
+        <div class="footer-layout">
+            <div class="newsletter-section">
+                <div class="newsletter-typewriter">
+                    <h3 class="serif-title">SUBSCRIBE TO THE INKED DISPATCH</h3>
+                    <p class="mono-text">DELIVERED TO YOUR VIRTUAL MAILBOX DAILY.</p>
+                    <form id="newsletter-form" class="newsletter-form">
+                        <input type="email" id="newsletter-email" placeholder="typewriter@address.com" required
+                            aria-label="Newsletter email">
+                        <button type="submit" class="mono-text">ENGRAVE</button>
+                    </form>
+                    <div id="newsletter-status" class="newsletter-status mono-text"></div>
+                </div>
+                <!-- Stamp element triggered on submit -->
+                <div id="stamp-confirmed" class="stamp">APPROVED</div>
+            </div>
+
+            <div class="footer-info">
+                <h4 class="footer-logo">THE DAILY CHRONOGRAPH</h4>
+                <p>Designed for the digital age, styled for the printed page. All articles are generated for design
+                    validation and sample illustration purposes.</p>
+                <p class="mono-text">© 2026 CHRONOGRAPH MEDIA INC. ALL RIGHT OR WRONG RESERVED.</p>
+            </div>
+        </div>
+        <div class="single-divider"></div>
+    </footer>
+
+    <!-- Full Article Reader Modal -->
+    <div id="article-modal" class="modal-overlay" aria-hidden="true" role="dialog">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="modal-controls">
+                    <button id="reader-font-dec" class="control-btn mono-text" title="Decrease Font Size">A-</button>
+                    <button id="reader-font-inc" class="control-btn mono-text" title="Increase Font Size">A+</button>
+                    <button id="reader-tts" class="control-btn mono-text" title="Read Aloud">SPEAK</button>
+                    <button id="reader-bookmark" class="control-btn mono-text" title="Bookmark Article">SAVE</button>
+                    <button id="reader-print" class="control-btn mono-text" title="Print Article">PRINT</button>
+                </div>
+                <button id="modal-close" class="close-btn" aria-label="Close modal">&times;</button>
+            </div>
+
+            <div class="modal-body" id="modal-article-content">
+                <!-- Populated dynamically by app.js -->
+            </div>
+
+            <div class="modal-footer">
+                <div class="double-divider"></div>
+                <p class="mono-text text-center">END OF TELEGRAM — THE DAILY CHRONOGRAPH</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="app.js"></script>
+</body>
+
+</html>
