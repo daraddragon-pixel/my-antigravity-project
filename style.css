@@ -252,8 +252,8 @@ a {
     white-space: nowrap;
     padding-right: 50px;
     font-family: var(--font-mono);
-    font-size: 0.9rem;
-    animation: ticker-scroll 45s linear infinite;
+    font-size: 0.8rem;
+    animation: ticker-scroll 50s linear infinite;
     display: flex;
     align-items: center;
 }

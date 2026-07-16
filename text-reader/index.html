@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title>Khmer Text Reader | Voice AI Reader</title>
+    <!-- Google Fonts for rich editorial look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&family=Nokora:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Utility header -->
+    <header class="utility-bar">
+        <div class="header-logo">
+            <h1 class="logo-title">VOICE CHRONOGRAPH</h1>
+            <span class="logo-sub mono-text">KHMER & ENGLISH TEXT READER</span>
+        </div>
+        <div class="utility-right">
+            <button id="theme-toggle" class="utility-btn mono-text" aria-label="Toggle Night Edition">
+                NIGHT EDITION
+            </button>
+        </div>
+    </header>
+
+    <div class="double-divider"></div>
+
+    <!-- Main Container -->
+    <main class="main-layout">
+        <!-- Input section -->
+        <section class="reader-card">
+            <div class="card-header">
+                <h2 class="card-title-serif">TELEGRAPH INPUT</h2>
+                <div class="preset-links">
+                    <button class="preset-btn text-link mono-text" data-text="pres-km-1">KHMER PRESET</button>
+                    <button class="preset-btn text-link mono-text" data-text="pres-en-1">ENGLISH PRESET</button>
+                </div>
+            </div>
+
+            <div class="textarea-wrap">
+                <textarea id="text-input" placeholder="Type or paste text here... / សូមវាយបញ្ចូល ឬចម្លងអត្ថបទនៅទីនេះ..." maxlength="2000"></textarea>
+                <div class="textarea-footer mono-text">
+                    <button id="clear-btn" class="clear-btn">CLEAR TEXT</button>
+                    <span id="char-counter">0 / 2000 CHARS</span>
+                </div>
+            </div>
+
+            <!-- Controls panel -->
+            <div class="controls-panel">
+                <div class="control-group">
+                    <label for="lang-select" class="mono-text">LANGUAGE / ភាសា</label>
+                    <select id="lang-select">
+                        <option value="km">ភាសាខ្មែរ (KHMER)</option>
+                        <option value="en">ENGLISH (US)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="speed-slider" class="mono-text">SPEED / ល្បឿន: <span id="speed-val">1.0x</span></label>
+                    <input type="range" id="speed-slider" min="0.5" max="2.0" step="0.1" value="1.0">
+                </div>
+
+                <div class="control-group">
+                    <label for="pitch-slider" class="mono-text">PITCH / កម្រិតសំឡេង: <span id="pitch-val">1.0</span></label>
+                    <input type="range" id="pitch-slider" min="0.5" max="1.5" step="0.1" value="1.0">
+                </div>
+            </div>
+
+            <div class="single-divider"></div>
+
+            <!-- Execution controls -->
+            <div class="actions-row">
+                <button id="speak-btn" class="action-btn primary-btn mono-text">
+                    <span class="icon">▶</span> SPEAK / អានឮៗ
+                </button>
+                <button id="stop-btn" class="action-btn secondary-btn mono-text" disabled>
+                    <span class="icon">■</span> STOP / បញ្ឈប់
+                </button>
+            </div>
+        </section>
+
+        <!-- History sidebar -->
+        <aside class="history-sidebar">
+            <h3 class="section-title-serif">TELEGRAM LOGS</h3>
+            <div id="history-list" class="history-container">
+                <p class="empty-state mono-text">No recent entries / មិនមានកំណត់ត្រាថ្មី</p>
+            </div>
+            <button id="clear-history-btn" class="utility-btn mono-text hidden">CLEAR LOGS</button>
+        </aside>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="double-divider"></div>
+        <div class="footer-layout">
+            <p class="mono-text">DESIGNED FOR DIGITAL AUDIBILITY — EST. 2026</p>
+            <p class="mono-text copyright">© 2026 CHRONOGRAPH MEDIA. PURE STATIC TRANSMISSION.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="app.js"></script>
+</body>
+
+</html>
