@@ -22,6 +22,7 @@
     --selection-color: #f4f4f0;
     --stamp-red: #8b0000;
     --active-bg: rgba(0, 0, 0, 0.05);
+    --brand-blue: #0056b3;
 
     --font-heading: 'Playfair Display', 'Nokora', Georgia, serif;
     --font-serif: 'Old Standard TT', 'Nokora', Georgia, serif;
@@ -46,6 +47,12 @@
     --selection-color: #121212;
     --stamp-red: #ff3333;
     --active-bg: rgba(255, 255, 255, 0.08);
+    --brand-blue: #4facfe;
+}
+
+.brand-color {
+    color: var(--brand-blue);
+    transition: color var(--transition-speed);
 }
 
 /* -----------------------------------------
@@ -169,10 +176,12 @@ a {
 ----------------------------------------- */
 .masthead-container {
     display: grid;
-    grid-template-columns: 1fr 2fr 1fr;
-    align-items: center;
-    padding: 2rem 0;
-    text-align: center;
+    grid-template-areas: 
+        "info-left . info-right"
+        "title title title";
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1.5rem 0;
+    padding: 1.5rem 0;
 }
 
 .masthead-info-left,
@@ -184,24 +193,33 @@ a {
 }
 
 .masthead-info-left {
+    grid-area: info-left;
     text-align: left;
 }
 
 .masthead-info-right {
+    grid-area: info-right;
     text-align: right;
 }
 
 .masthead-title {
+    grid-area: title;
     font-family: var(--font-heading);
     font-weight: 900;
-    font-size: 4rem;
+    font-size: 5rem;
     letter-spacing: -2px;
-    line-height: 0.9;
+    line-height: 1.1;
     text-transform: uppercase;
+    white-space: nowrap;
+    text-align: center;
 }
 
 @media (max-width: 900px) {
     .masthead-container {
+        grid-template-areas: 
+            "info-left"
+            "title"
+            "info-right";
         grid-template-columns: 1fr;
         gap: 1rem;
     }
@@ -213,7 +231,7 @@ a {
     }
 
     .masthead-title {
-        font-size: 2.8rem;
+        font-size: 3rem;
     }
 }
 
@@ -239,6 +257,8 @@ a {
     align-items: center;
     font-weight: bold;
     z-index: 10;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .ticker {
@@ -641,13 +661,11 @@ a {
     width: 100%;
     height: auto;
     display: block;
-    filter: grayscale(100%) contrast(140%) brightness(95%);
-    transition: filter var(--transition-speed), transform var(--transition-speed);
+    transition: transform var(--transition-speed);
 }
 
 .card-img-wrap:hover img {
     transform: scale(1.02);
-    filter: grayscale(100%) contrast(150%) brightness(100%);
 }
 
 .card-body-preview {
@@ -1032,6 +1050,140 @@ a {
 }
 
 /* -----------------------------------------
+   Hero Article Slideshow
+----------------------------------------- */
+.hero-slider-wrap {
+    position: relative;
+    width: 100%;
+    height: 380px;
+    margin: 1.5rem 0;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.slides-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.hero-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    z-index: 1;
+    pointer-events: none;
+    transition: opacity 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.hero-slide.active {
+    opacity: 1;
+    z-index: 2;
+    pointer-events: auto;
+}
+
+.hero-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.slide-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+    color: #ffffff;
+    padding: 3rem 1.5rem 1.5rem 1.5rem;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    text-align: left;
+}
+
+.slide-category {
+    font-size: 0.75rem;
+    color: var(--brand-blue);
+    letter-spacing: 0.1em;
+}
+
+.slide-title {
+    font-family: var(--font-heading);
+    font-size: 1.8rem;
+    margin: 0;
+    line-height: 1.2;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    text-transform: uppercase;
+}
+
+[lang="km"] .slide-title {
+    font-family: var(--font-sans) !important;
+    font-size: 1.4rem !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+}
+
+.slide-author {
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+/* Slider Controls */
+.slider-controls {
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink-black);
+    color: var(--paper-bg);
+    border: 1px solid var(--border-color);
+    padding: 0.4rem 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    z-index: 10;
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity var(--transition-speed) ease-in-out;
+    pointer-events: none;
+}
+
+.hero-slider-wrap:hover .slider-controls {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.slide-nav-btn {
+    background: none;
+    border: none;
+    color: inherit;
+    font-family: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0;
+    transition: opacity 0.2s;
+}
+
+.slide-nav-btn:hover {
+    opacity: 0.7;
+}
+
+.slide-indicator {
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    border-left: 1px solid var(--border-light);
+    border-right: 1px solid var(--border-light);
+    padding: 0 0.8rem;
+}
+
+/* -----------------------------------------
    Khmer Language Specific Style Overrides
 ----------------------------------------- */
 [lang="km"] .mono-text,
@@ -1043,8 +1195,15 @@ a {
 
 [lang="km"] .ticker-title {
     font-size: 0.85rem !important;
-    padding: 0 1.2rem 3px !important;
+    padding: 0 1.2rem !important;
+    line-height: 1 !important;
+}
+
+[lang="km"] .masthead-title {
+    font-size: clamp(1.8rem, 6.5vw, 5rem) !important;
+    letter-spacing: normal !important;
     line-height: 1.2 !important;
+    white-space: nowrap !important;
 }
 
 /* -----------------------------------------

@@ -7,7 +7,7 @@
 // --- Translation Dictionary ---
 const TRANSLATIONS = {
     en: {
-        mastheadTitle: "THE DAILY CHRONOGRAPH",
+        mastheadTitle: "<span class='brand-color'>ANR</span> DAILY NEWS",
         volNo: "VOL. CXXIV NO. 42",
         price: "PRICE: ONE BIT",
         est: "EST. 1902",
@@ -26,7 +26,7 @@ const TRANSLATIONS = {
         deliveredMailbox: "DELIVERED TO YOUR VIRTUAL MAILBOX DAILY.",
         emailPlaceholder: "typewriter@address.com",
         engrave: "ENGRAVE",
-        footerLogo: "THE DAILY CHRONOGRAPH",
+        footerLogo: "<span class='brand-color'>ANR</span> DAILY NEWS",
         footerDesc: "Designed for the digital age, styled for the printed page. All articles are generated for design validation and sample illustration purposes.",
         copyright: "© 2026 CHRONOGRAPH MEDIA INC. ALL RIGHT OR WRONG RESERVED.",
         emptyArchive: "EMPTY ARCHIVE",
@@ -70,7 +70,7 @@ const TRANSLATIONS = {
         }
     },
     km: {
-        mastheadTitle: "កាលប្បវត្តិប្រចាំថ្ងៃ",
+        mastheadTitle: "ព័ត៌មានប្រចាំថ្ងៃរបស់ <span class='brand-color'>អេអ៊ិនអរ</span>",
         volNo: "លេខ. CXXIV លេខរៀង ៤២",
         price: "តម្លៃ៖ ១ ប៊ីត",
         est: "បង្កើតឡើងឆ្នាំ ១៩០២",
@@ -89,7 +89,7 @@ const TRANSLATIONS = {
         deliveredMailbox: "ផ្ញើទៅកាន់ប្រអប់សំបុត្រនិម្មិតរបស់អ្នកជារៀងរាល់ថ្ងៃ។",
         emailPlaceholder: "typewriter@address.com",
         engrave: "ចុះឈ្មោះ",
-        footerLogo: "កាលប្បវត្តិប្រចាំថ្ងៃ",
+        footerLogo: "ព័ត៌មានប្រចាំថ្ងៃរបស់ <span class='brand-color'>អេអ៊ិនអរ</span>",
         footerDesc: "រចនាឡើងសម្រាប់យុគ្គសម័យឌីជីថល រៀបចំឡើងសម្រាប់ទំព័របោះពុម្ព។ អត្ថបទទាំងអស់ត្រូវបានបង្កើតឡើងសម្រាប់សុពលភាពរចនា និងគោលបំណងបង្ហាញគំរូតែប៉ុណ្ណោះ។",
         copyright: "© ២០២៦ ក្រុមហ៊ុនប្រព័ន្ធផ្សព្វផ្សាយកាលប្បវត្តិ។ រក្សាសិទ្ធិគ្រប់យ៉ាង។",
         emptyArchive: "បណ្ណសារទទេ",
@@ -410,6 +410,8 @@ let ttsInstance = null;
 let ttsAudioPlayer = null;
 let ttsAudioQueue = [];
 let ttsAudioIndex = 0;
+let heroSliderInterval = null;
+let heroSliderIdx = 0;
 
 // --- DOM Elements ---
 const articlesGrid = document.getElementById("main-articles-grid");
@@ -581,34 +583,193 @@ function renderArticles() {
     filtered.forEach((art, index) => {
         const isHero = index === 0 && currentCategory === "all" && !searchQuery;
         const isSaved = bookmarkedArticles.includes(art.id);
-        const cardClass = isHero ? "news-card hero" : "news-card";
-        const dropCapClass = isHero ? "drop-cap" : "";
         const bookmarkIcon = isSaved ? "★" : "☆";
-
         const contentLang = art[currentLanguage];
         const readTimeStr = currentLanguage === "km" ? art.readTimeKm : art.readTime;
         const categoryUpper = currentLanguage === "km" ? t.nav[art.category] || art.category : art.category.toUpperCase();
 
-        articlesGrid.innerHTML += `
-            <article class="${cardClass}">
-                <span class="card-category">${categoryUpper}</span>
-                <h3 class="card-title" onclick="openArticleModal('${art.id}')">${contentLang.title}</h3>
-                <div class="card-meta">
-                    <span>${t.by} ${art.author} &bull; ${readTimeStr}</span>
-                    <button class="bookmark-icon-btn" onclick="toggleBookmark('${art.id}', event)" title="${isSaved ? t.unsave : t.save}">
-                        ${bookmarkIcon}
-                    </button>
-                </div>
-                ${art.image ? `
-                <div class="card-img-wrap" onclick="openArticleModal('${art.id}')">
-                    <img src="${art.image}" alt="${contentLang.title} Image">
-                </div>
-                ` : ""}
-                <p class="card-body-preview ${dropCapClass}">${contentLang.preview}</p>
-                <span class="read-more-btn" onclick="openArticleModal('${art.id}')">${t.readDispatch} &rarr;</span>
-            </article>
-        `;
+        if (isHero) {
+            articlesGrid.innerHTML += `
+                <article class="news-card hero" id="hero-article-card">
+                    <span class="card-category" id="hero-card-category"></span>
+                    <h3 class="card-title" id="hero-card-title" onclick="openHeroArticle()"></h3>
+                    <div class="card-meta">
+                        <span id="hero-card-meta"></span>
+                        <button class="bookmark-icon-btn" id="hero-card-bookmark" onclick="toggleHeroBookmark(event)" title="${t.save}">
+                            ${bookmarkIcon}
+                        </button>
+                    </div>
+                    <div class="hero-slider-wrap">
+                        <div class="slides-container"></div>
+                        <div class="slider-controls mono-text">
+                            <button class="slide-nav-btn prev-slide">[◀] PREV</button>
+                            <span class="slide-indicator">01 / 05</span>
+                            <button class="slide-nav-btn next-slide">NEXT [▶]</button>
+                        </div>
+                    </div>
+                    <p class="card-body-preview drop-cap" id="hero-card-preview"></p>
+                    <span class="read-more-btn" id="hero-card-readmore" onclick="openHeroArticle()">${t.readDispatch} &rarr;</span>
+                </article>
+            `;
+        } else {
+            articlesGrid.innerHTML += `
+                <article class="news-card">
+                    <span class="card-category">${categoryUpper}</span>
+                    <h3 class="card-title" onclick="openArticleModal('${art.id}')">${contentLang.title}</h3>
+                    <div class="card-meta">
+                        <span>${t.by} ${art.author} &bull; ${readTimeStr}</span>
+                        <button class="bookmark-icon-btn" onclick="toggleBookmark('${art.id}', event)" title="${isSaved ? t.unsave : t.save}">
+                            ${bookmarkIcon}
+                        </button>
+                    </div>
+                    ${art.image ? `
+                    <div class="card-img-wrap" onclick="openArticleModal('${art.id}')">
+                        <img src="${art.image}" alt="${contentLang.title} Image">
+                    </div>
+                    ` : ""}
+                    <p class="card-body-preview">${contentLang.preview}</p>
+                    <span class="read-more-btn" onclick="openArticleModal('${art.id}')">${t.readDispatch} &rarr;</span>
+                </article>
+            `;
+        }
     });
+
+    initHeroSlider();
+}
+
+function initHeroSlider() {
+    const sliderWrap = document.querySelector(".hero-slider-wrap");
+    if (!sliderWrap) return;
+
+    // Clear any existing active interval to prevent duplicate timers
+    if (heroSliderInterval) {
+        clearInterval(heroSliderInterval);
+        heroSliderInterval = null;
+    }
+
+    const slideArticles = ARTICLES_DB.filter(a => a.image).slice(0, 5);
+    const container = sliderWrap.querySelector(".slides-container");
+    const indicator = sliderWrap.querySelector(".slide-indicator");
+    
+    if (slideArticles.length === 0) return;
+    
+    container.innerHTML = slideArticles.map((art, idx) => {
+        const contentLang = art[currentLanguage];
+        const activeClass = idx === 0 ? "active" : "";
+        return `
+            <div class="hero-slide ${activeClass}" data-index="${idx}" onclick="openHeroArticle()">
+                <img src="${art.image}" alt="${contentLang.title} Image">
+            </div>
+        `;
+    }).join("");
+
+    const showSlide = (idx) => {
+        const slides = container.querySelectorAll(".hero-slide");
+        if (slides.length === 0) return;
+        
+        if (idx >= slides.length) idx = 0;
+        if (idx < 0) idx = slides.length - 1;
+        
+        heroSliderIdx = idx;
+        
+        slides.forEach((slide, sIdx) => {
+            if (sIdx === heroSliderIdx) {
+                slide.classList.add("active");
+            } else {
+                slide.classList.remove("active");
+            }
+        });
+
+        indicator.textContent = `${String(heroSliderIdx + 1).padStart(2, '0')} / ${String(slides.length).padStart(2, '0')}`;
+
+        // Sync with outer hero card elements
+        const currentArt = slideArticles[heroSliderIdx];
+        if (currentArt) {
+            const isKm = currentLanguage === "km";
+            const contentLang = currentArt[currentLanguage];
+            const t = TRANSLATIONS[currentLanguage];
+            
+            const catLabel = isKm ? (t.nav[currentArt.category] || currentArt.category) : currentArt.category.toUpperCase();
+            const readTimeStr = isKm ? currentArt.readTimeKm : currentArt.readTime;
+            
+            const catEl = document.getElementById("hero-card-category");
+            const titleEl = document.getElementById("hero-card-title");
+            const metaEl = document.getElementById("hero-card-meta");
+            const prevEl = document.getElementById("hero-card-preview");
+            const bookmarkEl = document.getElementById("hero-card-bookmark");
+
+            if (catEl) catEl.textContent = catLabel;
+            if (titleEl) titleEl.textContent = contentLang.title;
+            if (metaEl) metaEl.innerHTML = `${t.by} ${currentArt.author} &bull; ${readTimeStr}`;
+            if (prevEl) prevEl.textContent = contentLang.preview;
+            
+            if (bookmarkEl) {
+                const isSaved = bookmarkedArticles.includes(currentArt.id);
+                bookmarkEl.textContent = isSaved ? "★" : "☆";
+                bookmarkEl.title = isSaved ? t.unsave : t.save;
+            }
+        }
+    };
+
+    const startAutoplay = () => {
+        stopAutoplay();
+        heroSliderInterval = setInterval(() => {
+            showSlide(heroSliderIdx + 1);
+        }, 5000);
+    };
+
+    const stopAutoplay = () => {
+        if (heroSliderInterval) {
+            clearInterval(heroSliderInterval);
+            heroSliderInterval = null;
+        }
+    };
+
+    // Bind navigation buttons
+    const prevBtn = sliderWrap.querySelector(".prev-slide");
+    const nextBtn = sliderWrap.querySelector(".next-slide");
+
+    if (prevBtn) {
+        prevBtn.onclick = (e) => {
+            e.stopPropagation();
+            showSlide(heroSliderIdx - 1);
+            startAutoplay();
+        };
+    }
+
+    if (nextBtn) {
+        nextBtn.onclick = (e) => {
+            e.stopPropagation();
+            showSlide(heroSliderIdx + 1);
+            startAutoplay();
+        };
+    }
+
+    sliderWrap.onmouseenter = stopAutoplay;
+    sliderWrap.onmouseleave = startAutoplay;
+
+    // Define globally accessible click actions
+    window.openHeroArticle = () => {
+        const activeArt = slideArticles[heroSliderIdx];
+        if (activeArt) openArticleModal(activeArt.id);
+    };
+
+    window.toggleHeroBookmark = (e) => {
+        if (e) e.stopPropagation();
+        const activeArt = slideArticles[heroSliderIdx];
+        if (activeArt) {
+            toggleBookmark(activeArt.id, e);
+            const bookmarkEl = document.getElementById("hero-card-bookmark");
+            if (bookmarkEl) {
+                const isSaved = bookmarkedArticles.includes(activeArt.id);
+                bookmarkEl.textContent = isSaved ? "★" : "☆";
+            }
+        }
+    };
+
+    // Load initial slide details
+    showSlide(0);
+    startAutoplay();
 }
 
 // --- Bookmarking Actions ---
@@ -948,7 +1109,7 @@ function translateUI() {
 
     // Masthead
     document.getElementById("masthead-vol").textContent = t.volNo;
-    document.getElementById("masthead-title-text").textContent = t.mastheadTitle;
+    document.getElementById("masthead-title-text").innerHTML = t.mastheadTitle;
     document.getElementById("masthead-price").textContent = t.price;
     document.getElementById("masthead-est").textContent = t.est;
     
@@ -985,7 +1146,7 @@ function translateUI() {
     stampConfirmed.textContent = t.approved;
 
     // Footer Info
-    document.getElementById("footer-logo-text").textContent = t.footerLogo;
+    document.getElementById("footer-logo-text").innerHTML = t.footerLogo;
     document.getElementById("footer-desc-text").textContent = t.footerDesc;
     document.getElementById("footer-copyright-text").textContent = t.copyright;
 
