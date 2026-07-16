@@ -1032,6 +1032,21 @@ a {
 }
 
 /* -----------------------------------------
+   Khmer Language Specific Style Overrides
+----------------------------------------- */
+[lang="km"] .mono-text,
+[lang="km"] .ticker-title {
+    font-family: var(--font-sans) !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+}
+
+[lang="km"] .ticker-title {
+    font-size: 0.9rem !important;
+    padding: 0 1.2rem !important;
+}
+
+/* -----------------------------------------
    Print Layout Style Sheet
 ----------------------------------------- */
 @media print {

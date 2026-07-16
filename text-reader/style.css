@@ -499,3 +499,10 @@ footer {
 .footer-layout .copyright {
     text-align: right;
 }
+
+/* Khmer Language Specific Overrides */
+[lang="km"] .mono-text {
+    font-family: var(--font-sans) !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+}

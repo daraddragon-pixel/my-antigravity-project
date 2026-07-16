@@ -932,6 +932,7 @@ function updateWeather() {
 
 // --- Translate UI DOM Elements ---
 function translateUI() {
+    document.documentElement.setAttribute("lang", currentLanguage);
     const t = TRANSLATIONS[currentLanguage];
     
     // Header & Buttons

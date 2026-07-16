@@ -39,7 +39,12 @@ document.addEventListener("DOMContentLoaded", () => {
     loadHistory();
     setupEventListeners();
     updateCharCounter();
+    updateDocLanguage();
 });
+
+function updateDocLanguage() {
+    document.documentElement.setAttribute("lang", langSelect.value);
+}
 
 // --- Core Logic ---
 
@@ -270,6 +275,7 @@ function loadHistory() {
             textInput.value = item.text;
             langSelect.value = item.lang;
             updateCharCounter();
+            updateDocLanguage();
             showToast("TEXT LOADED FROM LOG");
         };
 
@@ -351,6 +357,8 @@ function setupEventListeners() {
     themeToggle.addEventListener("click", toggleTheme);
     clearHistoryBtn.addEventListener("click", clearAllHistory);
 
+    langSelect.addEventListener("change", updateDocLanguage);
+
     // Preset buttons
     document.querySelectorAll(".preset-btn").forEach(btn => {
         btn.addEventListener("click", () => {
@@ -359,6 +367,7 @@ function setupEventListeners() {
                 textInput.value = PRESETS[key];
                 langSelect.value = key.includes("-km-") ? "km" : "en";
                 updateCharCounter();
+                updateDocLanguage();
                 showToast("PRESET TEXT LOADED");
             }
         });
