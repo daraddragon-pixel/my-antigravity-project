@@ -407,6 +407,9 @@ let currentLanguage = localStorage.getItem("chronograph_lang") || "en";
 let bookmarkedArticles = JSON.parse(localStorage.getItem("chronograph_bookmarks")) || [];
 let readerFontSizeMultiplier = 1.0;
 let ttsInstance = null;
+let ttsAudioPlayer = null;
+let ttsAudioQueue = [];
+let ttsAudioIndex = 0;
 
 // --- DOM Elements ---
 const articlesGrid = document.getElementById("main-articles-grid");
@@ -727,66 +730,150 @@ function applyFontSize() {
 
 // --- Text to Speech (TTS) ---
 function toggleTTS(art) {
-    if ('speechSynthesis' in window) {
-        if (window.speechSynthesis.speaking) {
-            stopTTS();
-            return;
-        }
-
-        const t = TRANSLATIONS[currentLanguage];
-        const contentLang = art[currentLanguage];
-        
-        // Gather speech text
-        const isKm = currentLanguage === "km";
-        const bodyTextEl = modalArticleContent.querySelector(".modal-article-body");
-        const bodyText = bodyTextEl ? bodyTextEl.innerText : "";
-        const textContent = isKm
-            ? `${contentLang.title}។ ${contentLang.subTitle || ""}។ និពន្ធដោយ ${art.author}។ ${bodyText}`
-            : `${contentLang.title}. ${contentLang.subTitle || ""}. Written by ${art.author}. ${bodyText}`;
-        
-        ttsInstance = new SpeechSynthesisUtterance(textContent);
-        ttsInstance.rate = 1.0;
-        ttsInstance.pitch = 0.95; // slightly lower pitch for vintage voice broadcast feel
-
-        const voices = window.speechSynthesis.getVoices();
-        let voice = null;
-        if (isKm) {
-            const kmVoices = voices.filter(v => {
-                const l = v.lang.toLowerCase();
-                return l.startsWith("km") || l.includes("kh") || v.name.toLowerCase().includes("khmer");
-            });
-            voice = kmVoices.find(v => {
-                const name = v.name.toLowerCase();
-                return name.includes("sreypich") || name.includes("female") || name.includes("google") || name.includes("online");
-            }) || kmVoices[0];
-            ttsInstance.lang = "km-KH";
-        } else {
-            voice = voices.find(v => v.lang.toLowerCase().startsWith("en"));
-            ttsInstance.lang = "en-US";
-        }
-        
-        if (voice) {
-            ttsInstance.voice = voice;
-        }
-
-        ttsInstance.onend = () => {
-            readerTtsBtn.textContent = t.speak;
-            readerTtsBtn.classList.remove("active");
-        };
-
-        window.speechSynthesis.speak(ttsInstance);
-        readerTtsBtn.textContent = t.stop;
-        readerTtsBtn.classList.add("active");
-    } else {
-        const t = TRANSLATIONS[currentLanguage];
-        showToast(t.toastTtsUnsupported);
+    if (('speechSynthesis' in window && window.speechSynthesis.speaking) || ttsAudioPlayer) {
+        stopTTS();
+        return;
     }
+
+    const t = TRANSLATIONS[currentLanguage];
+    const contentLang = art[currentLanguage];
+    
+    // Gather speech text
+    const isKm = currentLanguage === "km";
+    const bodyTextEl = modalArticleContent.querySelector(".modal-article-body");
+    const bodyText = bodyTextEl ? bodyTextEl.innerText : "";
+    const textContent = isKm
+        ? `${contentLang.title}។ ${contentLang.subTitle || ""}។ និពន្ធដោយ ${art.author}។ ${bodyText}`
+        : `${contentLang.title}. ${contentLang.subTitle || ""}. Written by ${art.author}. ${bodyText}`;
+
+    if (isKm) {
+        // Check if there are native Khmer voices installed
+        const voices = window.speechSynthesis.getVoices();
+        const kmVoices = voices.filter(v => {
+            const l = v.lang.toLowerCase();
+            return l.startsWith("km") || l.includes("kh") || v.name.toLowerCase().includes("khmer");
+        });
+
+        if (kmVoices.length > 0) {
+            playNativeTTS(textContent, kmVoices, t);
+        } else {
+            playGoogleTTSQueue(textContent, t);
+        }
+    } else {
+        playNativeTTS(textContent, null, t);
+    }
+}
+
+function playNativeTTS(text, kmVoices, t) {
+    if (!('speechSynthesis' in window)) {
+        showToast(t.toastTtsUnsupported);
+        return;
+    }
+
+    ttsInstance = new SpeechSynthesisUtterance(text);
+    ttsInstance.rate = 1.0;
+    ttsInstance.pitch = 0.95;
+
+    const voices = window.speechSynthesis.getVoices();
+    let voice = null;
+
+    if (kmVoices) {
+        voice = kmVoices.find(v => {
+            const name = v.name.toLowerCase();
+            return name.includes("sreypich") || name.includes("female") || name.includes("google") || name.includes("online");
+        }) || kmVoices[0];
+        ttsInstance.lang = "km-KH";
+    } else {
+        voice = voices.find(v => v.lang.toLowerCase().startsWith("en"));
+        ttsInstance.lang = "en-US";
+    }
+
+    if (voice) {
+        ttsInstance.voice = voice;
+    }
+
+    ttsInstance.onend = () => {
+        readerTtsBtn.textContent = t.speak;
+        readerTtsBtn.classList.remove("active");
+    };
+
+    window.speechSynthesis.speak(ttsInstance);
+    readerTtsBtn.textContent = t.stop;
+    readerTtsBtn.classList.add("active");
+}
+
+function playGoogleTTSQueue(text, t) {
+    const sentences = text.split(/([។\.\?\!])/);
+    const chunks = [];
+    let currentChunk = "";
+
+    for (let i = 0; i < sentences.length; i++) {
+        const segment = sentences[i];
+        if (!segment) continue;
+        if (currentChunk.length + segment.length < 150) {
+            currentChunk += segment;
+        } else {
+            if (currentChunk.trim()) {
+                chunks.push(currentChunk.trim());
+            }
+            currentChunk = segment;
+        }
+    }
+    if (currentChunk.trim()) {
+        chunks.push(currentChunk.trim());
+    }
+
+    if (chunks.length === 0) return;
+
+    ttsAudioQueue = chunks;
+    ttsAudioIndex = 0;
+
+    readerTtsBtn.textContent = t.stop;
+    readerTtsBtn.classList.add("active");
+
+    playNextTTSChunk(t);
+}
+
+function playNextTTSChunk(t) {
+    if (ttsAudioIndex >= ttsAudioQueue.length) {
+        stopTTS();
+        return;
+    }
+
+    const text = ttsAudioQueue[ttsAudioIndex];
+    const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=km&client=tw-ob&q=${encodeURIComponent(text)}`;
+    
+    ttsAudioPlayer = new Audio(url);
+    ttsAudioPlayer.onended = () => {
+        ttsAudioIndex++;
+        playNextTTSChunk(t);
+    };
+    ttsAudioPlayer.onerror = (e) => {
+        console.error("Google TTS error, skipping chunk:", e);
+        ttsAudioIndex++;
+        playNextTTSChunk(t);
+    };
+
+    ttsAudioPlayer.play().catch(err => {
+        console.error("Google TTS play failed:", err);
+        showToast("AUDIO PLAYBACK BLOCKED OR OFFLINE");
+        stopTTS();
+    });
 }
 
 function stopTTS() {
     if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
     }
+    
+    if (ttsAudioPlayer) {
+        ttsAudioPlayer.pause();
+        ttsAudioPlayer.src = "";
+        ttsAudioPlayer = null;
+    }
+    ttsAudioQueue = [];
+    ttsAudioIndex = 0;
+
     const t = TRANSLATIONS[currentLanguage];
     readerTtsBtn.textContent = t.speak;
     readerTtsBtn.classList.remove("active");
