@@ -89,11 +89,13 @@
                 <!-- Bulletins populated by app.js -->
             </div>
 
-            <div class="vintage-ad">
-                <div class="ad-border">
-                    <p class="ad-title mono-text" id="ad-title-text">THE CHRONOGRAPH CO.</p>
-                    <p class="ad-body" id="ad-body-text">FINE INKS & STATIONERY</p>
-                    <span class="ad-sub" id="ad-sub-text">Est. 1888 — Pure Quality</span>
+            <div id="left-ad-container">
+                <div class="vintage-ad">
+                    <div class="ad-border">
+                        <p class="ad-title mono-text" id="ad-title-text">THE CHRONOGRAPH CO.</p>
+                        <p class="ad-body" id="ad-body-text">FINE INKS & STATIONERY</p>
+                        <span class="ad-sub" id="ad-sub-text">Est. 1888 — Pure Quality</span>
+                    </div>
                 </div>
             </div>
         </aside>
@@ -122,6 +124,7 @@
                     </div>
                 </div>
             </div>
+            <div id="right-ad-container" style="margin-top: 2rem;"></div>
         </aside>
     </main>
 
@@ -175,6 +178,159 @@
             <div class="modal-footer">
                 <div class="double-divider"></div>
                 <p class="mono-text text-center">END OF TELEGRAM — THE DAILY CHRONOGRAPH</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Passcode Prompter Modal -->
+    <div id="admin-passcode-modal" class="modal-overlay" aria-hidden="true" role="dialog">
+        <div class="modal-container" style="max-width: 420px; padding: 2rem !important; text-align: center; border-radius: 2px;">
+            <div class="modal-header" style="justify-content: center; border-bottom: none; margin-bottom: 1rem; padding: 0 !important;">
+                <h2 class="serif-title" style="font-size: 1.3rem; margin: 0;">AUTHORIZATION KEY REQUIRED</h2>
+            </div>
+            <div class="double-divider" style="margin-bottom: 1.5rem;"></div>
+            <p class="mono-text text-sm" style="margin-bottom: 1.5rem; opacity: 0.8; line-height: 1.4;">ENTER THE MASTER TELEGRAPH KEY TO ACCESS THE CPANEL DATABASE CONTROLS.</p>
+            <form id="admin-passcode-form" style="display: flex; flex-direction: column; gap: 1rem; align-items: center; width: 100%;">
+                <div class="form-group" style="width: 100%;">
+                    <input type="password" id="admin-passcode-input" placeholder="••••••••••••" required style="text-align: center; font-size: 1.2rem; letter-spacing: 0.1em; border: 1px solid var(--border-color); background: var(--paper-bg); color: var(--ink-black); padding: 0.6rem; width: 100%; box-sizing: border-box;">
+                </div>
+                <div class="form-row" style="width: 100%; justify-content: center; gap: 1rem; margin-top: 0.5rem;">
+                    <button type="submit" class="admin-submit-btn mono-text" style="width: 50%;">SUBMIT</button>
+                    <button type="button" id="admin-passcode-cancel" class="admin-clear-btn mono-text" style="width: 50%;">CANCEL</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Control Panel (cPanel) Modal -->
+    <div id="admin-panel-modal" class="modal-overlay" aria-hidden="true" role="dialog">
+        <div class="modal-container admin-container">
+            <div class="modal-header">
+                <h2 class="serif-title">ANR NEWS CPANEL — CONTROL MENU</h2>
+                <button id="admin-modal-close" class="close-btn" aria-label="Close admin modal">&times;</button>
+            </div>
+            
+            <div class="admin-tabs">
+                <button class="admin-tab-btn active" data-tab="tab-posts">MANAGE POSTS</button>
+                <button class="admin-tab-btn" data-tab="tab-ads">MANAGE ADS</button>
+                <button class="admin-tab-btn" data-tab="tab-backup">BACKUP & RESTORE</button>
+            </div>
+            
+            <div class="modal-body admin-body">
+                <!-- Tab 1: Manage Posts -->
+                <div id="tab-posts" class="admin-tab-content active">
+                    <div class="admin-split-layout">
+                        <!-- Left Panel: Article Form -->
+                        <form id="admin-post-form" class="admin-form">
+                            <h3 class="card-title-serif">PUBLISH / EDIT ARTICLE</h3>
+                            <input type="hidden" id="admin-post-id" value="">
+                            
+                            <div class="form-group">
+                                <label for="admin-post-category" class="mono-text">Category:</label>
+                                <select id="admin-post-category" required>
+                                    <option value="technology">Technology</option>
+                                    <option value="world">World</option>
+                                    <option value="culture">Culture</option>
+                                    <option value="opinion">Opinion / Editorial</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="admin-post-author" class="mono-text">Author:</label>
+                                <input type="text" id="admin-post-author" placeholder="e.g. ALEXIS VANCE" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="admin-post-image" class="mono-text">Cover Image URL (optional):</label>
+                                <input type="text" id="admin-post-image" placeholder="e.g. assets/images/silicon_telegraph.png">
+                            </div>
+                            
+                            <div class="form-row-split">
+                                <div class="lang-column">
+                                    <h4 class="mono-text">English Version</h4>
+                                    <div class="form-group">
+                                        <input type="text" id="admin-post-title-en" placeholder="Title (EN)" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <input type="text" id="admin-post-subtitle-en" placeholder="Subtitle (EN)">
+                                    </div>
+                                    <div class="form-group">
+                                        <textarea id="admin-post-preview-en" placeholder="Preview Text (EN)" rows="3" required></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <textarea id="admin-post-content-en" placeholder="Full Article Body HTML (EN)" rows="6" required></textarea>
+                                    </div>
+                                </div>
+                                <div class="lang-column">
+                                    <h4 class="mono-text">Khmer Version</h4>
+                                    <div class="form-group">
+                                        <input type="text" id="admin-post-title-km" placeholder="ចំណងជើង (KM)" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <input type="text" id="admin-post-subtitle-km" placeholder="ចំណងជើងរង (KM)">
+                                    </div>
+                                    <div class="form-group">
+                                        <textarea id="admin-post-preview-km" placeholder="អត្ថបទសង្ខេប (KM)" rows="3" required></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <textarea id="admin-post-content-km" placeholder="ខ្លឹមសារអត្ថបទពេញ HTML (KM)" rows="6" required></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <button type="submit" class="admin-submit-btn mono-text">ENGRAVE DISPATCH</button>
+                                <button type="button" id="admin-post-clear" class="admin-clear-btn mono-text">RESET FORM</button>
+                            </div>
+                        </form>
+                        
+                        <!-- Right Panel: Posts List -->
+                        <div class="admin-list-panel">
+                            <h3 class="card-title-serif">ARCHIVED DISPATCHES</h3>
+                            <div class="admin-posts-list" id="admin-posts-list-container">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tab 2: Manage Ads -->
+                <div id="tab-ads" class="admin-tab-content">
+                    <form id="admin-ads-form" class="admin-form full-width-form">
+                        <h3 class="card-title-serif">ADVERTISING CONTROL PANEL</h3>
+                        <p class="mono-text text-sm" style="margin-bottom:1rem; opacity:0.8;">Paste raw HTML, custom image banner links, or Google AdSense script tags here. Leave empty to use default ads.</p>
+                        
+                        <div class="form-group">
+                            <label for="admin-ad-left" class="mono-text">Left Sidebar Ad Block (Telegraph Co.):</label>
+                            <textarea id="admin-ad-left" placeholder="Paste Ad HTML / Google AdSense script code here..." rows="8"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="admin-ad-right" class="mono-text">Right Sidebar Ad Block (Meteorological card area):</label>
+                            <textarea id="admin-ad-right" placeholder="Paste Ad HTML / Google AdSense script code here..." rows="8"></textarea>
+                        </div>
+                        
+                        <button type="submit" class="admin-submit-btn mono-text">SAVE ADVERTISING UNITS</button>
+                    </form>
+                </div>
+                
+                <!-- Tab 3: Backup & Restore -->
+                <div id="tab-backup" class="admin-tab-content">
+                    <div class="admin-form full-width-form">
+                        <h3 class="card-title-serif">EXPORT / IMPORT DATABASE CONFIG</h3>
+                        <p class="mono-text text-sm" style="margin-bottom:1rem; opacity:0.8;">Copy this configuration code block to save your custom posts and ads. Paste a previously exported code block to restore them.</p>
+                        
+                        <div class="form-group">
+                            <label for="admin-backup-data" class="mono-text">JSON Database Block:</label>
+                            <textarea id="admin-backup-data" placeholder="Database JSON block will appear here..." rows="12"></textarea>
+                        </div>
+                        
+                        <div class="form-row">
+                            <button type="button" id="admin-backup-btn" class="admin-submit-btn mono-text">EXPORT CURRENT CONFIG</button>
+                            <button type="button" id="admin-restore-btn" class="admin-submit-btn mono-text" style="background:#0056b3; border-color:#0056b3; margin-left:1rem;">IMPORT CONFIG</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

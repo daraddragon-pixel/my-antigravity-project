@@ -451,11 +451,13 @@ const readerPrintBtn = document.getElementById("reader-print");
 
 // --- Initialization ---
 document.addEventListener("DOMContentLoaded", () => {
+    initCustomData(); // Merge custom posts from LocalStorage
     initClock();
     initTicker();
     initTheme();
     translateUI(); // This renders the static elements and triggers the initial page render
     setupEventListeners();
+    initAdminPanel(); // Bind cPanel controls and events
 });
 
 // --- Functions ---
@@ -1128,10 +1130,8 @@ function translateUI() {
     document.getElementById("sidebar-left-title").textContent = t.latestFlashes;
     document.getElementById("sidebar-right-title").textContent = t.opinionEditorial;
 
-    // Vintage Ad
-    document.getElementById("ad-title-text").textContent = t.adTitle;
-    document.getElementById("ad-body-text").textContent = t.adBody;
-    document.getElementById("ad-sub-text").textContent = t.adSub;
+    // Render custom ads or default vintage ads
+    renderCustomAds();
 
     // Weather Card
     document.getElementById("weather-detail-title").textContent = t.meteorologicalStamp;
@@ -1267,4 +1267,451 @@ function setupEventListeners() {
             }, 1500);
         }
     });
+}
+
+// ==========================================
+// ANR News cPanel & Custom Data Functions
+// ==========================================
+
+function initCustomData() {
+    const customArticles = JSON.parse(localStorage.getItem("anr_custom_articles")) || [];
+    
+    // Remove any previously merged custom articles from ARTICLES_DB
+    for (let i = ARTICLES_DB.length - 1; i >= 0; i--) {
+        if (ARTICLES_DB[i].id.startsWith("custom-")) {
+            ARTICLES_DB.splice(i, 1);
+        }
+    }
+    
+    // Merge new custom articles
+    customArticles.forEach(art => {
+        ARTICLES_DB.push(art);
+    });
+}
+
+// Safely execute embedded <script> tags when inserting custom ad HTML
+function safeInjectHTML(container, htmlCode) {
+    if (!container) return;
+    container.innerHTML = htmlCode;
+    
+    const scripts = container.querySelectorAll("script");
+    scripts.forEach(oldScript => {
+        const newScript = document.createElement("script");
+        Array.from(oldScript.attributes).forEach(attr => {
+            newScript.setAttribute(attr.name, attr.value);
+        });
+        newScript.textContent = oldScript.textContent;
+        oldScript.parentNode.replaceChild(newScript, oldScript);
+    });
+}
+
+function renderCustomAds() {
+    const leftAdContainer = document.getElementById("left-ad-container");
+    const rightAdContainer = document.getElementById("right-ad-container");
+    
+    const savedAds = JSON.parse(localStorage.getItem("anr_custom_ads")) || { left: "", right: "" };
+    const t = TRANSLATIONS[currentLanguage];
+
+    // Left Ad
+    if (leftAdContainer) {
+        if (savedAds.left && savedAds.left.trim() !== "") {
+            safeInjectHTML(leftAdContainer, savedAds.left);
+        } else {
+            leftAdContainer.innerHTML = `
+                <div class="vintage-ad">
+                    <div class="ad-border">
+                        <p class="ad-title mono-text" id="ad-title-text">${t.adTitle}</p>
+                        <p class="ad-body" id="ad-body-text">${t.adBody}</p>
+                        <span class="ad-sub" id="ad-sub-text">${t.adSub}</span>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    // Right Ad
+    if (rightAdContainer) {
+        if (savedAds.right && savedAds.right.trim() !== "") {
+            safeInjectHTML(rightAdContainer, savedAds.right);
+        } else {
+            rightAdContainer.innerHTML = "";
+        }
+    }
+}
+
+function initAdminPanel() {
+    const adminModal = document.getElementById("admin-panel-modal");
+    const adminModalClose = document.getElementById("admin-modal-close");
+    
+    const passcodeModal = document.getElementById("admin-passcode-modal");
+    const passcodeForm = document.getElementById("admin-passcode-form");
+    const passcodeInput = document.getElementById("admin-passcode-input");
+    const passcodeCancel = document.getElementById("admin-passcode-cancel");
+    
+    const tabButtons = document.querySelectorAll(".admin-tab-btn");
+    const tabContents = document.querySelectorAll(".admin-tab-content");
+    
+    const postForm = document.getElementById("admin-post-form");
+    const postIdInput = document.getElementById("admin-post-id");
+    const categorySelect = document.getElementById("admin-post-category");
+    const authorInput = document.getElementById("admin-post-author");
+    const imageInput = document.getElementById("admin-post-image");
+    
+    const titleEnInput = document.getElementById("admin-post-title-en");
+    const subtitleEnInput = document.getElementById("admin-post-subtitle-en");
+    const previewEnInput = document.getElementById("admin-post-preview-en");
+    const contentEnInput = document.getElementById("admin-post-content-en");
+    
+    const titleKmInput = document.getElementById("admin-post-title-km");
+    const subtitleKmInput = document.getElementById("admin-post-subtitle-km");
+    const previewKmInput = document.getElementById("admin-post-preview-km");
+    const contentKmInput = document.getElementById("admin-post-content-km");
+    
+    const formResetBtn = document.getElementById("admin-post-clear");
+    const postsListContainer = document.getElementById("admin-posts-list-container");
+    
+    const adsForm = document.getElementById("admin-ads-form");
+    const leftAdTextarea = document.getElementById("admin-ad-left");
+    const rightAdTextarea = document.getElementById("admin-ad-right");
+    
+    const backupTextarea = document.getElementById("admin-backup-data");
+    const backupBtn = document.getElementById("admin-backup-btn");
+    const restoreBtn = document.getElementById("admin-restore-btn");
+
+    if (!adminModal || !passcodeModal) return;
+
+    // Secret key trigger sequence listener
+    let typedBuffer = "";
+    document.addEventListener("keydown", (e) => {
+        if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") {
+            return;
+        }
+
+        typedBuffer += e.key.toLowerCase();
+        if (typedBuffer.length > 20) {
+            typedBuffer = typedBuffer.substring(typedBuffer.length - 10);
+        }
+
+        const isSecretTyped = typedBuffer.endsWith("cpanel") || typedBuffer.endsWith("admin");
+        const isComboPressed = e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "a";
+
+        if (isSecretTyped || isComboPressed) {
+            typedBuffer = "";
+            e.preventDefault();
+            triggerAdminAccess();
+        }
+    });
+
+    // Check URL Hash
+    const checkUrlHashAccess = () => {
+        if (window.location.hash === "#cpanel" || window.location.hash === "#admin") {
+            history.replaceState(null, null, " ");
+            triggerAdminAccess();
+        }
+    };
+
+    window.addEventListener("hashchange", checkUrlHashAccess);
+    checkUrlHashAccess();
+
+    const triggerAdminAccess = () => {
+        if (sessionStorage.getItem("anr_admin_authorized") === "true") {
+            openAdminPanel();
+        } else {
+            passcodeModal.classList.add("active");
+            passcodeModal.setAttribute("aria-hidden", "false");
+            passcodeInput.value = "";
+            passcodeInput.focus();
+        }
+    };
+
+    const openAdminPanel = () => {
+        adminModal.classList.add("active");
+        adminModal.setAttribute("aria-hidden", "false");
+        renderAdminPostsList();
+        loadAdsInputs();
+    };
+
+    // Passcode confirmation submission
+    passcodeForm.onsubmit = (e) => {
+        e.preventDefault();
+        if (passcodeInput.value === "ANRNews2026") {
+            sessionStorage.setItem("anr_admin_authorized", "true");
+            passcodeModal.classList.remove("active");
+            passcodeModal.setAttribute("aria-hidden", "true");
+            openAdminPanel();
+            showToast("AUTHORIZATION CONFIRMED");
+        } else {
+            showToast("AUTHORIZATION DENIED: INVALID KEY");
+            passcodeInput.value = "";
+            passcodeInput.focus();
+        }
+    };
+
+    passcodeCancel.onclick = () => {
+        passcodeModal.classList.remove("active");
+        passcodeModal.setAttribute("aria-hidden", "true");
+        passcodeInput.value = "";
+    };
+
+    // Modal Close
+    adminModalClose.onclick = () => {
+        adminModal.classList.remove("active");
+        adminModal.setAttribute("aria-hidden", "true");
+    };
+
+    adminModal.onclick = (e) => {
+        if (e.target === adminModal) {
+            adminModal.classList.remove("active");
+            adminModal.setAttribute("aria-hidden", "true");
+        }
+    };
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+            if (adminModal.classList.contains("active")) {
+                adminModal.classList.remove("active");
+                adminModal.setAttribute("aria-hidden", "true");
+            }
+            if (passcodeModal.classList.contains("active")) {
+                passcodeModal.classList.remove("active");
+                passcodeModal.setAttribute("aria-hidden", "true");
+            }
+        }
+    });
+
+    // Tab Switching
+    tabButtons.forEach(btn => {
+        btn.onclick = () => {
+            tabButtons.forEach(b => b.classList.remove("active"));
+            tabContents.forEach(c => c.classList.remove("active"));
+            
+            btn.classList.add("active");
+            const target = btn.getAttribute("data-tab");
+            document.getElementById(target).classList.add("active");
+
+            if (target === "tab-backup") {
+                exportBackupToTextarea();
+            }
+        };
+    });
+
+    // Reset Form
+    formResetBtn.onclick = () => {
+        postForm.reset();
+        postIdInput.value = "";
+    };
+
+    // Render Posts List in Admin Panel
+    const renderAdminPostsList = () => {
+        if (!postsListContainer) return;
+        postsListContainer.innerHTML = "";
+        
+        ARTICLES_DB.forEach(art => {
+            const isCustom = art.id.startsWith("custom-");
+            const metaStr = `${art.category.toUpperCase()} &bull; BY ${art.author}`;
+            const contentLang = art[currentLanguage];
+            
+            const item = document.createElement("div");
+            item.className = "admin-post-item";
+            item.innerHTML = `
+                <div class="admin-post-item-info">
+                    <h4 class="admin-post-item-title">${contentLang.title}</h4>
+                    <span class="admin-post-item-meta">${metaStr} ${isCustom ? '<span style="color:#0056b3;">[USER]</span>' : '[SYSTEM]'}</span>
+                </div>
+                <div class="admin-post-item-actions">
+                    <button class="admin-action-link edit">[EDIT]</button>
+                    ${isCustom ? '<button class="admin-action-link delete">[DEL]</button>' : ''}
+                </div>
+            `;
+            
+            // Edit Handler
+            item.querySelector(".edit").onclick = () => {
+                postIdInput.value = art.id;
+                categorySelect.value = art.category;
+                authorInput.value = art.author;
+                imageInput.value = art.image || "";
+                
+                titleEnInput.value = art.en.title;
+                subtitleEnInput.value = art.en.subTitle || "";
+                previewEnInput.value = art.en.preview;
+                contentEnInput.value = art.en.content;
+                
+                titleKmInput.value = art.km.title;
+                subtitleKmInput.value = art.km.subTitle || "";
+                previewKmInput.value = art.km.preview;
+                contentKmInput.value = art.km.content;
+
+                // Switch scroll view back to top of form
+                postForm.scrollTop = 0;
+                showToast("ARTICLE DATA LOADED TO FORM");
+            };
+            
+            // Delete Handler (Custom Only)
+            if (isCustom) {
+                item.querySelector(".delete").onclick = () => {
+                    if (confirm("Are you sure you want to delete this article?")) {
+                        deleteCustomArticle(art.id);
+                    }
+                };
+            }
+            
+            postsListContainer.appendChild(item);
+        });
+    };
+
+    // Delete Custom Article
+    const deleteCustomArticle = (id) => {
+        let customArticles = JSON.parse(localStorage.getItem("anr_custom_articles")) || [];
+        customArticles = customArticles.filter(art => art.id !== id);
+        localStorage.setItem("anr_custom_articles", JSON.stringify(customArticles));
+        
+        initCustomData();
+        renderArticles();
+        renderAdminPostsList();
+        showToast("ARTICLE DELETED");
+    };
+
+    // Save/Publish Article Form Submit
+    postForm.onsubmit = (e) => {
+        e.preventDefault();
+        
+        const existingId = postIdInput.value;
+        const id = existingId || "custom-" + Date.now();
+        const category = categorySelect.value;
+        const author = authorInput.value.trim().toUpperCase();
+        const image = imageInput.value.trim();
+        
+        // Calculate read time roughly
+        const cleanContentEn = contentEnInput.value.replace(/<[^>]*>/g, "");
+        const wordCountVal = cleanContentEn.split(/\s+/).filter(Boolean).length;
+        const readTimeVal = Math.max(1, Math.round(wordCountVal / 200));
+
+        const newArticle = {
+            id,
+            category,
+            author,
+            date: new Date().toLocaleDateString("en-US", { month: "long", day: "2-digit", year: "numeric" }).toUpperCase(),
+            dateKm: new Date().toLocaleDateString("km-KH", { month: "long", day: "2-digit", year: "numeric" }),
+            wordCount: `${wordCountVal} WORDS`,
+            wordCountKm: `${wordCountVal} ពាក្យ`,
+            readTime: `${readTimeVal} MIN READ`,
+            readTimeKm: `${readTimeVal} នាទីអាន`,
+            image: image || null,
+            en: {
+                title: titleEnInput.value.trim(),
+                subTitle: subtitleEnInput.value.trim(),
+                preview: previewEnInput.value.trim(),
+                content: contentEnInput.value.trim()
+            },
+            km: {
+                title: titleKmInput.value.trim(),
+                subTitle: subtitleKmInput.value.trim(),
+                preview: previewKmInput.value.trim(),
+                content: contentKmInput.value.trim()
+            }
+        };
+
+        let customArticles = JSON.parse(localStorage.getItem("anr_custom_articles")) || [];
+        
+        if (existingId) {
+            // Update
+            const idx = customArticles.findIndex(art => art.id === existingId);
+            if (idx > -1) {
+                customArticles[idx] = newArticle;
+            } else {
+                // If it is modifying a system article (save as custom override)
+                customArticles.push(newArticle);
+            }
+            showToast("ARTICLE MODIFICATIONS SAVED");
+        } else {
+            // Create
+            customArticles.push(newArticle);
+            showToast("NEW ARTICLE ENGRAVED & PUBLISHED");
+        }
+
+        localStorage.setItem("anr_custom_articles", JSON.stringify(customArticles));
+        
+        // Refresh site data
+        initCustomData();
+        renderArticles();
+        renderAdminPostsList();
+        
+        // Reset form
+        postForm.reset();
+        postIdInput.value = "";
+    };
+
+    // Load Ads inputs
+    const loadAdsInputs = () => {
+        const savedAds = JSON.parse(localStorage.getItem("anr_custom_ads")) || { left: "", right: "" };
+        if (leftAdTextarea) leftAdTextarea.value = savedAds.left || "";
+        if (rightAdTextarea) rightAdTextarea.value = savedAds.right || "";
+    };
+
+    // Save Ads Form Submit
+    adsForm.onsubmit = (e) => {
+        e.preventDefault();
+        const config = {
+            left: leftAdTextarea.value,
+            right: rightAdTextarea.value
+        };
+        localStorage.setItem("anr_custom_ads", JSON.stringify(config));
+        renderCustomAds();
+        showToast("ADVERTISING BLOCKS UPDATED");
+    };
+
+    // Backup & Restore
+    const exportBackupToTextarea = () => {
+        const customArticles = JSON.parse(localStorage.getItem("anr_custom_articles")) || [];
+        const customAds = JSON.parse(localStorage.getItem("anr_custom_ads")) || { left: "", right: "" };
+        
+        const backupObj = {
+            version: "1.0",
+            timestamp: Date.now(),
+            customArticles,
+            customAds
+        };
+        
+        if (backupTextarea) {
+            backupTextarea.value = JSON.stringify(backupObj, null, 2);
+        }
+    };
+
+    backupBtn.onclick = () => {
+        exportBackupToTextarea();
+        if (backupTextarea) {
+            backupTextarea.select();
+            document.execCommand("copy");
+            showToast("BACKUP COPIED TO CLIPBOARD");
+        }
+    };
+
+    restoreBtn.onclick = () => {
+        if (!backupTextarea || !backupTextarea.value.trim()) {
+            alert("Please paste the backup JSON block first.");
+            return;
+        }
+        try {
+            const backupObj = JSON.parse(backupTextarea.value.trim());
+            if (backupObj && Array.isArray(backupObj.customArticles)) {
+                localStorage.setItem("anr_custom_articles", JSON.stringify(backupObj.customArticles));
+                if (backupObj.customAds) {
+                    localStorage.setItem("anr_custom_ads", JSON.stringify(backupObj.customAds));
+                }
+                
+                initCustomData();
+                renderArticles();
+                renderCustomAds();
+                renderAdminPostsList();
+                loadAdsInputs();
+                
+                showToast("DATABASE CONFIG RESTORED SUCCESS");
+            } else {
+                alert("Invalid backup format. Make sure it contains 'customArticles'.");
+            }
+        } catch (err) {
+            console.error("Restore failed:", err);
+            alert("Error parsing backup JSON. Please check your config block format.");
+        }
+    };
 }
