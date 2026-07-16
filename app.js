@@ -1339,6 +1339,25 @@ function renderCustomAds() {
     }
 }
 
+async function translateText(text, fromLang, toLang) {
+    if (!text || text.trim() === "") return "";
+    try {
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data && data.responseData && data.responseData.translatedText) {
+            // MyMemory sometimes returns HTML entities, decode them if needed
+            const decoded = document.createElement("textarea");
+            decoded.innerHTML = data.responseData.translatedText;
+            return decoded.value;
+        }
+        throw new Error("Invalid response format");
+    } catch (err) {
+        console.error("Translation error:", err);
+        return "";
+    }
+}
+
 function initAdminPanel() {
     const adminModal = document.getElementById("admin-panel-modal");
     const adminModalClose = document.getElementById("admin-modal-close");
@@ -1368,6 +1387,7 @@ function initAdminPanel() {
     const contentKmInput = document.getElementById("admin-post-content-km");
     
     const formResetBtn = document.getElementById("admin-post-clear");
+    const translateBtn = document.getElementById("admin-translate-btn");
     const postsListContainer = document.getElementById("admin-posts-list-container");
     
     const adsForm = document.getElementById("admin-ads-form");
@@ -1500,6 +1520,48 @@ function initAdminPanel() {
         postForm.reset();
         postIdInput.value = "";
     };
+
+    // Auto-Translate Form Fields
+    if (translateBtn) {
+        translateBtn.onclick = async () => {
+            const titleKm = titleKmInput.value.trim();
+            const subtitleKm = subtitleKmInput.value.trim();
+            const previewKm = previewKmInput.value.trim();
+            const contentKm = contentKmInput.value.trim();
+
+            if (!titleKm && !previewKm && !contentKm) {
+                alert(currentLanguage === "km" ? "សូមបញ្ចូលអត្ថបទជាភាសាខ្មែរមុននឹងបកប្រែ។" : "Please enter some Khmer text first.");
+                return;
+            }
+
+            const origText = translateBtn.textContent;
+            translateBtn.textContent = "TRANSLATING...";
+            translateBtn.disabled = true;
+
+            try {
+                // Concurrently translate all Khmer text fields using MyMemory translation API
+                const [titleEn, subtitleEn, previewEn, contentEn] = await Promise.all([
+                    translateText(titleKm, "km", "en"),
+                    translateText(subtitleKm, "km", "en"),
+                    translateText(previewKm, "km", "en"),
+                    translateText(contentKm, "km", "en")
+                ]);
+
+                if (titleEn) titleEnInput.value = titleEn;
+                if (subtitleEn) subtitleEnInput.value = subtitleEn;
+                if (previewEn) previewEnInput.value = previewEn;
+                if (contentEn) contentEnInput.value = contentEn;
+
+                showToast(currentLanguage === "km" ? "ការបកប្រែដោយស្វ័យប្រវត្តិកំពុងបញ្ចប់" : "AUTO-TRANSLATION COMPLETE");
+            } catch (err) {
+                console.error("Auto-translation failed:", err);
+                alert("Translation lookup failed. Please verify your connection and try again.");
+            } finally {
+                translateBtn.textContent = origText;
+                translateBtn.disabled = false;
+            }
+        };
+    }
 
     // Render Posts List in Admin Panel
     const renderAdminPostsList = () => {
