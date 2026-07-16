@@ -253,7 +253,7 @@ a {
     padding-right: 50px;
     font-family: var(--font-mono);
     font-size: 0.9rem;
-    animation: ticker-scroll 25s linear infinite;
+    animation: ticker-scroll 45s linear infinite;
     display: flex;
     align-items: center;
 }
