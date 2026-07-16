@@ -749,7 +749,11 @@ function toggleTTS(art) {
         const voices = window.speechSynthesis.getVoices();
         let voice = null;
         if (isKm) {
-            voice = voices.find(v => v.lang.startsWith("km") || v.lang.includes("KH"));
+            const kmVoices = voices.filter(v => v.lang.startsWith("km") || v.lang.includes("KH"));
+            voice = kmVoices.find(v => {
+                const name = v.name.toLowerCase();
+                return name.includes("sreypich") || name.includes("female") || name.includes("google") || name.includes("online");
+            }) || kmVoices[0];
             ttsInstance.lang = "km-KH";
         } else {
             voice = voices.find(v => v.lang.startsWith("en"));
