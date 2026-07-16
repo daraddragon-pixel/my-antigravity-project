@@ -23,10 +23,10 @@
     --stamp-red: #8b0000;
     --active-bg: rgba(0, 0, 0, 0.05);
 
-    --font-heading: 'Playfair Display', Georgia, serif;
-    --font-serif: 'Old Standard TT', Georgia, serif;
-    --font-sans: 'Inter', system-ui, sans-serif;
-    --font-mono: 'Courier Prime', monospace;
+    --font-heading: 'Playfair Display', 'Nokora', Georgia, serif;
+    --font-serif: 'Old Standard TT', 'Nokora', Georgia, serif;
+    --font-sans: 'Inter', 'Kantumruy Pro', system-ui, sans-serif;
+    --font-mono: 'Courier Prime', 'Kantumruy Pro', monospace;
 
     --transition-speed: 0.3s;
 }

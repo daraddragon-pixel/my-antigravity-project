@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500;600;700&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500;600;700&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Kantumruy+Pro:wght@300;400;500;600;700&family=Nokora:wght@400;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -27,19 +27,22 @@
             <button id="theme-toggle" class="utility-btn mono-text" aria-label="Toggle Night Edition">
                 NIGHT EDITION
             </button>
+            <button id="language-toggle" class="utility-btn mono-text" aria-label="Toggle Language">
+                ភាសាខ្មែរ
+            </button>
         </div>
     </header>
 
     <!-- Masthead -->
     <div class="masthead-container">
         <div class="masthead-info-left mono-text">
-            <div>VOL. CXXIV NO. 42</div>
+            <div id="masthead-vol">VOL. CXXIV NO. 42</div>
             <div id="weather-widget">LONDON 14°C <span class="weather-icon">☁</span></div>
         </div>
-        <h1 class="masthead-title">THE DAILY CHRONOGRAPH</h1>
+        <h1 class="masthead-title" id="masthead-title-text">THE DAILY CHRONOGRAPH</h1>
         <div class="masthead-info-right mono-text">
-            <div>PRICE: ONE BIT</div>
-            <div>EST. 1902</div>
+            <div id="masthead-price">PRICE: ONE BIT</div>
+            <div id="masthead-est">EST. 1902</div>
         </div>
     </div>
 
@@ -48,7 +51,7 @@
 
     <!-- Ticker -->
     <div class="ticker-wrap">
-        <div class="ticker-title mono-text">BULLETINS</div>
+        <div class="ticker-title mono-text" id="ticker-title-text">BULLETINS</div>
         <div class="ticker">
             <div class="ticker__item" id="ticker-content">
                 Loading live alerts...
@@ -80,16 +83,16 @@
     <main class="newspaper-layout">
         <!-- Sidebar Left: Quick Bulletins -->
         <aside class="sidebar-left">
-            <h2 class="section-title-serif">LATEST FLASHES</h2>
+            <h2 class="section-title-serif" id="sidebar-left-title">LATEST FLASHES</h2>
             <div class="bulletins-container" id="bulletins-list">
                 <!-- Bulletins populated by app.js -->
             </div>
 
             <div class="vintage-ad">
                 <div class="ad-border">
-                    <p class="ad-title mono-text">THE CHRONOGRAPH CO.</p>
-                    <p class="ad-body">FINE INKS & STATIONERY</p>
-                    <span class="ad-sub">Est. 1888 — Pure Quality</span>
+                    <p class="ad-title mono-text" id="ad-title-text">THE CHRONOGRAPH CO.</p>
+                    <p class="ad-body" id="ad-body-text">FINE INKS & STATIONERY</p>
+                    <span class="ad-sub" id="ad-sub-text">Est. 1888 — Pure Quality</span>
                 </div>
             </div>
         </aside>
@@ -101,13 +104,13 @@
 
         <!-- Sidebar Right: Opinion and Weather Details -->
         <aside class="sidebar-right">
-            <h2 class="section-title-serif">OPINION & EDITORIAL</h2>
+            <h2 class="section-title-serif" id="sidebar-right-title">OPINION & EDITORIAL</h2>
             <div class="opinion-container" id="opinion-list">
                 <!-- Opinion articles populated by app.js -->
             </div>
 
             <div class="weather-detail-card">
-                <h3 class="card-title-serif">METEOROLOGICAL STAMP</h3>
+                <h3 class="card-title-serif" id="weather-detail-title">METEOROLOGICAL STAMP</h3>
                 <div class="weather-box">
                     <span class="weather-temp" id="widget-temp">14°C</span>
                     <span class="weather-desc" id="widget-desc">OVERCAST MIST</span>
@@ -127,12 +130,12 @@
         <div class="footer-layout">
             <div class="newsletter-section">
                 <div class="newsletter-typewriter">
-                    <h3 class="serif-title">SUBSCRIBE TO THE INKED DISPATCH</h3>
-                    <p class="mono-text">DELIVERED TO YOUR VIRTUAL MAILBOX DAILY.</p>
+                    <h3 class="serif-title" id="newsletter-title-text">SUBSCRIBE TO THE INKED DISPATCH</h3>
+                    <p class="mono-text" id="newsletter-desc-text">DELIVERED TO YOUR VIRTUAL MAILBOX DAILY.</p>
                     <form id="newsletter-form" class="newsletter-form">
                         <input type="email" id="newsletter-email" placeholder="typewriter@address.com" required
                             aria-label="Newsletter email">
-                        <button type="submit" class="mono-text">ENGRAVE</button>
+                        <button type="submit" class="mono-text" id="newsletter-btn-text">ENGRAVE</button>
                     </form>
                     <div id="newsletter-status" class="newsletter-status mono-text"></div>
                 </div>
@@ -141,10 +144,10 @@
             </div>
 
             <div class="footer-info">
-                <h4 class="footer-logo">THE DAILY CHRONOGRAPH</h4>
-                <p>Designed for the digital age, styled for the printed page. All articles are generated for design
+                <h4 class="footer-logo" id="footer-logo-text">THE DAILY CHRONOGRAPH</h4>
+                <p id="footer-desc-text">Designed for the digital age, styled for the printed page. All articles are generated for design
                     validation and sample illustration purposes.</p>
-                <p class="mono-text">© 2026 CHRONOGRAPH MEDIA INC. ALL RIGHT OR WRONG RESERVED.</p>
+                <p class="mono-text" id="footer-copyright-text">© 2026 CHRONOGRAPH MEDIA INC. ALL RIGHT OR WRONG RESERVED.</p>
             </div>
         </div>
         <div class="single-divider"></div>
