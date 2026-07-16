@@ -677,7 +677,7 @@ function openArticleModal(id) {
             <span>${t.by} ${art.author} &bull; ${dateStr}</span>
             <span>${wordCountStr} &bull; ${readTimeStr}</span>
         </div>
-        <div>
+        <div class="modal-article-body">
             ${contentLang.content}
         </div>
     `;
@@ -738,9 +738,11 @@ function toggleTTS(art) {
         
         // Gather speech text
         const isKm = currentLanguage === "km";
+        const bodyTextEl = modalArticleContent.querySelector(".modal-article-body");
+        const bodyText = bodyTextEl ? bodyTextEl.innerText : "";
         const textContent = isKm
-            ? `${contentLang.title}។ ${contentLang.subTitle || ""}។ ${t.by} ${art.author}។ ${modalArticleContent.innerText}`
-            : `${contentLang.title}. ${contentLang.subTitle || ""}. ${t.by} ${art.author}. ${modalArticleContent.innerText}`;
+            ? `${contentLang.title}។ ${contentLang.subTitle || ""}។ និពន្ធដោយ ${art.author}។ ${bodyText}`
+            : `${contentLang.title}. ${contentLang.subTitle || ""}. Written by ${art.author}. ${bodyText}`;
         
         ttsInstance = new SpeechSynthesisUtterance(textContent);
         ttsInstance.rate = 1.0;
@@ -749,14 +751,17 @@ function toggleTTS(art) {
         const voices = window.speechSynthesis.getVoices();
         let voice = null;
         if (isKm) {
-            const kmVoices = voices.filter(v => v.lang.startsWith("km") || v.lang.includes("KH"));
+            const kmVoices = voices.filter(v => {
+                const l = v.lang.toLowerCase();
+                return l.startsWith("km") || l.includes("kh") || v.name.toLowerCase().includes("khmer");
+            });
             voice = kmVoices.find(v => {
                 const name = v.name.toLowerCase();
                 return name.includes("sreypich") || name.includes("female") || name.includes("google") || name.includes("online");
             }) || kmVoices[0];
             ttsInstance.lang = "km-KH";
         } else {
-            voice = voices.find(v => v.lang.startsWith("en"));
+            voice = voices.find(v => v.lang.toLowerCase().startsWith("en"));
             ttsInstance.lang = "en-US";
         }
         
