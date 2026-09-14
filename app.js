@@ -452,6 +452,7 @@ const readerPrintBtn = document.getElementById("reader-print");
 // --- Initialization ---
 document.addEventListener("DOMContentLoaded", () => {
     initCustomData(); // Merge custom posts from LocalStorage
+    initFirebaseCloud(); // Auto-connect to Firebase Cloud Firestore if configured
     initClock();
     initTicker();
     initTheme();
@@ -1273,6 +1274,178 @@ function setupEventListeners() {
 // ANR News cPanel & Custom Data Functions
 // ==========================================
 
+// Preset Project Media Assets
+const PRESET_MEDIA_ASSETS = [
+    { name: "Silicon Telegraph", url: "assets/images/silicon_telegraph.png" },
+    { name: "Vintage Typewriter", url: "assets/images/vintage_typewriter.png" },
+    { name: "Zeppelin Routes", url: "assets/images/zeppelin_routes.png" },
+    { name: "Monospace Return", url: "assets/images/monospace_return.png" },
+    { name: "Think & Feel", url: "assets/images/think_feel.png" },
+    { name: "Cloud Computing", url: "assets/images/cloud_computing.png" },
+    { name: "Quantum Computing", url: "assets/images/quantum_computing.png" },
+    { name: "Solar Power", url: "assets/images/solar_power.png" }
+];
+
+// Firebase Global State
+let firestoreDb = null;
+let isFirebaseConnected = false;
+let unsubscribeFirestoreArticles = null;
+let unsubscribeFirestoreSettings = null;
+
+// Robust Firebase Config Parser (Supports pure JSON, JS objects, const firebaseConfig = { ... }, and comments)
+function parseFirebaseConfig(raw) {
+    if (!raw || typeof raw !== "string") return null;
+    const str = raw.trim();
+
+    // 1. Try pure JSON parse first
+    try {
+        const parsed = JSON.parse(str);
+        if (parsed && typeof parsed === "object" && (parsed.apiKey || parsed.projectId)) {
+            return parsed;
+        }
+    } catch (e) {}
+
+    // 2. Extract object block { ... } if wrapped in code / variable declaration / script tag
+    const firstBrace = str.indexOf('{');
+    const lastBrace = str.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        const objText = str.substring(firstBrace, lastBrace + 1);
+        
+        // Try JS Function evaluation on object literal
+        try {
+            const evaluated = new Function(`"use strict"; return (${objText});`)();
+            if (evaluated && typeof evaluated === "object" && (evaluated.apiKey || evaluated.projectId)) {
+                return evaluated;
+            }
+        } catch (e) {}
+
+        // Try regex cleaning for standard JSON
+        try {
+            const cleaned = objText
+                .replace(/\/\*[\s\S]*?\*\/|([^:]|^)\/\/.*$/gm, '$1') // remove comments
+                .replace(/,\s*}/g, '}') // remove trailing commas
+                .replace(/([a-zA-Z0-9_$]+)\s*:/g, '"$1":') // quote keys
+                .replace(/'([^']*)'/g, '"$1"'); // replace single quotes with double quotes
+            const parsedCleaned = JSON.parse(cleaned);
+            if (parsedCleaned && (parsedCleaned.apiKey || parsedCleaned.projectId)) {
+                return parsedCleaned;
+            }
+        } catch (e) {}
+    }
+
+    // 3. Fallback direct Regex extraction of known Firebase properties
+    const extractField = (name) => {
+        const match = str.match(new RegExp(`['"]?${name}['"]?\\s*:\\s*['"]([^'"]+)['"]`, 'i'));
+        return match ? match[1].trim() : undefined;
+    };
+
+    const apiKey = extractField('apiKey');
+    const authDomain = extractField('authDomain');
+    const projectId = extractField('projectId');
+    const storageBucket = extractField('storageBucket');
+    const messagingSenderId = extractField('messagingSenderId');
+    const appId = extractField('appId');
+    const measurementId = extractField('measurementId');
+
+    if (apiKey || projectId) {
+        const res = {};
+        if (apiKey) res.apiKey = apiKey;
+        if (authDomain) res.authDomain = authDomain;
+        if (projectId) res.projectId = projectId;
+        if (storageBucket) res.storageBucket = storageBucket;
+        if (messagingSenderId) res.messagingSenderId = messagingSenderId;
+        if (appId) res.appId = appId;
+        if (measurementId) res.measurementId = measurementId;
+        return res;
+    }
+
+    return null;
+}
+
+// Initialize Firebase Cloud Firestore Connection
+function initFirebaseCloud() {
+    const rawConfig = localStorage.getItem("anr_firebase_config");
+    const statusBadge = document.getElementById("cloud-status-badge");
+    const configInput = document.getElementById("admin-firebase-config-input");
+
+    if (configInput && rawConfig && !configInput.value) {
+        configInput.value = rawConfig;
+    }
+
+    if (!rawConfig || typeof firebase === "undefined") {
+        if (statusBadge) {
+            statusBadge.innerHTML = "⚪ LOCALSTORAGE MODE";
+            statusBadge.style.color = "var(--ink-black)";
+        }
+        return;
+    }
+
+    try {
+        const config = parseFirebaseConfig(rawConfig);
+
+        if (config && (config.apiKey || config.projectId)) {
+            if (!firebase.apps || !firebase.apps.length) {
+                firebase.initializeApp(config);
+            }
+            firestoreDb = firebase.firestore();
+            isFirebaseConnected = true;
+
+            if (statusBadge) {
+                statusBadge.innerHTML = "🟢 CLOUD SYNC ACTIVE (FIRESTORE)";
+                statusBadge.style.color = "#008000";
+            }
+
+            listenToCloudData();
+        } else {
+            throw new Error("Unable to parse valid Firebase config keys");
+        }
+    } catch (err) {
+        console.warn("Firebase initialization skipped / format error:", err);
+        if (statusBadge) {
+            statusBadge.innerHTML = "⚠️ CONFIG ERROR (FALLBACK LOCAL)";
+            statusBadge.style.color = "#d97706";
+        }
+    }
+}
+
+// Real-Time Cloud Listeners
+function listenToCloudData() {
+    if (!firestoreDb) return;
+
+    // Listen to real-time dispatches
+    if (unsubscribeFirestoreArticles) unsubscribeFirestoreArticles();
+    unsubscribeFirestoreArticles = firestoreDb.collection("dispatches").onSnapshot(snapshot => {
+        const cloudArticles = [];
+        snapshot.forEach(doc => {
+            cloudArticles.push(doc.data());
+        });
+
+        if (cloudArticles.length > 0) {
+            localStorage.setItem("anr_custom_articles", JSON.stringify(cloudArticles));
+            initCustomData();
+            renderArticles();
+            const postsListContainer = document.getElementById("admin-posts-list-container");
+            if (postsListContainer && typeof renderAdminPostsListGlobal === "function") {
+                renderAdminPostsListGlobal();
+            }
+        }
+    }, err => {
+        console.warn("Firestore realtime sync notice:", err);
+    });
+
+    // Listen to real-time editorial settings
+    if (unsubscribeFirestoreSettings) unsubscribeFirestoreSettings();
+    unsubscribeFirestoreSettings = firestoreDb.collection("site_meta").doc("editorial").onSnapshot(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            localStorage.setItem("anr_editorial_settings", JSON.stringify(data));
+            renderEditorialSettings();
+        }
+    }, err => {
+        console.warn("Firestore editorial sync notice:", err);
+    });
+}
+
 function initCustomData() {
     const customArticles = JSON.parse(localStorage.getItem("anr_custom_articles")) || [];
     
@@ -1283,10 +1456,44 @@ function initCustomData() {
         }
     }
     
-    // Merge new custom articles
+    // Merge new custom articles (place featured articles at top)
     customArticles.forEach(art => {
-        ARTICLES_DB.push(art);
+        if (art.featured) {
+            ARTICLES_DB.unshift(art);
+        } else {
+            ARTICLES_DB.push(art);
+        }
     });
+
+    renderEditorialSettings();
+}
+
+// Render dynamic Masthead and Editorial info
+function renderEditorialSettings() {
+    const defaultSettings = {
+        title: "<span class='brand-color'>ANR</span> DAILY NEWS",
+        vol: "VOL. CXXIV NO. 42",
+        price: "PRICE: ONE BIT",
+        est: "EST. 1902",
+        weather: "LONDON 14°C"
+    };
+
+    const savedSettings = JSON.parse(localStorage.getItem("anr_editorial_settings")) || defaultSettings;
+    const isKm = currentLanguage === "km";
+
+    const mastheadTitleEl = document.getElementById("masthead-title-text");
+    const mastheadVolEl = document.getElementById("masthead-vol");
+    const mastheadPriceEl = document.getElementById("masthead-price");
+    const mastheadEstEl = document.getElementById("masthead-est");
+    const weatherWidgetEl = document.getElementById("weather-widget");
+
+    if (mastheadTitleEl && !isKm) mastheadTitleEl.innerHTML = savedSettings.title;
+    if (mastheadVolEl && !isKm) mastheadVolEl.textContent = savedSettings.vol;
+    if (mastheadPriceEl && !isKm) mastheadPriceEl.textContent = savedSettings.price;
+    if (mastheadEstEl && !isKm) mastheadEstEl.textContent = savedSettings.est;
+    if (weatherWidgetEl && !isKm && savedSettings.weather) {
+        weatherWidgetEl.innerHTML = `${savedSettings.weather} <span class="weather-icon">☁</span>`;
+    }
 }
 
 // Safely execute embedded <script> tags when inserting custom ad HTML
@@ -1339,6 +1546,7 @@ function renderCustomAds() {
     }
 }
 
+// Translation helper using MyMemory public API
 async function translateText(text, fromLang, toLang) {
     if (!text || text.trim() === "") return "";
     try {
@@ -1346,7 +1554,6 @@ async function translateText(text, fromLang, toLang) {
         const response = await fetch(url);
         const data = await response.json();
         if (data && data.responseData && data.responseData.translatedText) {
-            // MyMemory sometimes returns HTML entities, decode them if needed
             const decoded = document.createElement("textarea");
             decoded.innerHTML = data.responseData.translatedText;
             return decoded.value;
@@ -1358,23 +1565,29 @@ async function translateText(text, fromLang, toLang) {
     }
 }
 
+let renderAdminPostsListGlobal = null;
+
+// ------------------------------------------
+// cPanel Main Initialization
+// ------------------------------------------
 function initAdminPanel() {
     const adminModal = document.getElementById("admin-panel-modal");
-    const adminModalClose = document.getElementById("admin-modal-close");
-    
     const passcodeModal = document.getElementById("admin-passcode-modal");
     const passcodeForm = document.getElementById("admin-passcode-form");
     const passcodeInput = document.getElementById("admin-passcode-input");
     const passcodeCancel = document.getElementById("admin-passcode-cancel");
     
-    const tabButtons = document.querySelectorAll(".admin-tab-btn");
-    const tabContents = document.querySelectorAll(".admin-tab-content");
+    const tabButtons = Array.from(document.querySelectorAll(".admin-tab-btn"));
+    const tabContents = Array.from(document.querySelectorAll(".admin-tab-content"));
     
+    // Tab 1: Post Form Elements
     const postForm = document.getElementById("admin-post-form");
     const postIdInput = document.getElementById("admin-post-id");
     const categorySelect = document.getElementById("admin-post-category");
     const authorInput = document.getElementById("admin-post-author");
     const imageInput = document.getElementById("admin-post-image");
+    const langModeSelect = document.getElementById("admin-post-lang-mode");
+    const featuredCheckbox = document.getElementById("admin-post-featured");
     
     const titleEnInput = document.getElementById("admin-post-title-en");
     const subtitleEnInput = document.getElementById("admin-post-subtitle-en");
@@ -1386,21 +1599,75 @@ function initAdminPanel() {
     const previewKmInput = document.getElementById("admin-post-preview-km");
     const contentKmInput = document.getElementById("admin-post-content-km");
     
+    const colEn = document.getElementById("admin-col-en");
+    const colKm = document.getElementById("admin-col-km");
     const formResetBtn = document.getElementById("admin-post-clear");
     const translateBtn = document.getElementById("admin-translate-btn");
-    const postsListContainer = document.getElementById("admin-posts-list-container");
     
+    // Live Preview Elements
+    const previewToggleBtn = document.getElementById("admin-preview-toggle-btn");
+    const previewBox = document.getElementById("admin-live-preview-box");
+    const previewCloseBtn = document.getElementById("admin-preview-close-btn");
+    const previewContent = document.getElementById("admin-live-preview-content");
+    
+    // Archive List & Filters
+    const postsListContainer = document.getElementById("admin-posts-list-container");
+    const postsCountBadge = document.getElementById("admin-posts-count");
+    const archiveSearchInput = document.getElementById("admin-archive-search");
+    const filterPills = document.querySelectorAll(".filter-pill");
+    let activeArchiveCategory = "all";
+    
+    // Tab 2: Editorial & Ticker Elements
+    const editorialForm = document.getElementById("admin-editorial-form");
+    const mastheadTitleInput = document.getElementById("admin-masthead-title");
+    const mastheadVolInput = document.getElementById("admin-masthead-vol");
+    const mastheadPriceInput = document.getElementById("admin-masthead-price");
+    const mastheadEstInput = document.getElementById("admin-masthead-est");
+    const weatherCityInputSettings = document.getElementById("admin-weather-city");
+    const editorialResetBtn = document.getElementById("admin-editorial-reset");
+    
+    const newBulletinInput = document.getElementById("admin-new-bulletin-input");
+    const addBulletinBtn = document.getElementById("admin-add-bulletin-btn");
+    const bulletinsManageList = document.getElementById("admin-bulletins-list");
+    
+    // Tab 3: Ads Elements
     const adsForm = document.getElementById("admin-ads-form");
     const leftAdTextarea = document.getElementById("admin-ad-left");
     const rightAdTextarea = document.getElementById("admin-ad-right");
+    const clearAdsBtn = document.getElementById("admin-ads-clear-btn");
+    
+    // Tab 4: Media Elements
+    const mediaPresetGrid = document.getElementById("admin-media-preset-grid");
+    const mediaTestUrlInput = document.getElementById("admin-media-test-url");
+    const mediaTestBtn = document.getElementById("admin-media-test-btn");
+    const mediaUseBtn = document.getElementById("admin-media-use-btn");
+    const mediaTestPreview = document.getElementById("admin-media-test-preview");
+    const mediaPreviewImg = document.getElementById("admin-media-preview-img");
+    
+    // Tab 5: Security, Firebase & Backup Elements
+    const passcodeChangeForm = document.getElementById("admin-passcode-change-form");
+    const currentPasscodeInput = document.getElementById("admin-current-passcode");
+    const newPasscodeInput = document.getElementById("admin-new-passcode");
+    const confirmPasscodeInput = document.getElementById("admin-confirm-passcode");
+    
+    const firebaseConfigInput = document.getElementById("admin-firebase-config-input");
+    const firebaseSaveBtn = document.getElementById("admin-firebase-save-btn");
+    const firebasePushBtn = document.getElementById("admin-firebase-push-btn");
+    const firebaseDisconnectBtn = document.getElementById("admin-firebase-disconnect-btn");
     
     const backupTextarea = document.getElementById("admin-backup-data");
     const backupBtn = document.getElementById("admin-backup-btn");
     const restoreBtn = document.getElementById("admin-restore-btn");
+    const factoryResetBtn = document.getElementById("admin-factory-reset-btn");
 
     if (!adminModal || !passcodeModal) return;
 
-    // Secret key trigger sequence listener
+    // Helper: Get Current Passcode
+    const getMasterPasscode = () => localStorage.getItem("anr_admin_passcode") || "ANRNews2026";
+
+    // ------------------------------------------
+    // 1. Secret Trigger Listening & Shortcuts
+    // ------------------------------------------
     let typedBuffer = "";
     document.addEventListener("keydown", (e) => {
         if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") {
@@ -1422,7 +1689,6 @@ function initAdminPanel() {
         }
     });
 
-    // Check URL Hash
     const checkUrlHashAccess = () => {
         if (window.location.hash === "#cpanel" || window.location.hash === "#admin") {
             history.replaceState(null, null, " ");
@@ -1448,13 +1714,17 @@ function initAdminPanel() {
         adminModal.classList.add("active");
         adminModal.setAttribute("aria-hidden", "false");
         renderAdminPostsList();
+        loadEditorialInputs();
+        renderBulletinsManager();
         loadAdsInputs();
+        renderMediaPresets();
+        initFirebaseCloud();
     };
 
     // Passcode confirmation submission
     passcodeForm.onsubmit = (e) => {
         e.preventDefault();
-        if (passcodeInput.value === "ANRNews2026") {
+        if (passcodeInput.value === getMasterPasscode()) {
             sessionStorage.setItem("anr_admin_authorized", "true");
             passcodeModal.classList.remove("active");
             passcodeModal.setAttribute("aria-hidden", "true");
@@ -1473,25 +1743,19 @@ function initAdminPanel() {
         passcodeInput.value = "";
     };
 
-    // Modal Close
-    adminModalClose.onclick = () => {
+    // SIGN OUT Button
+    const signOutBtn = document.getElementById("admin-signout-btn");
+    const closeAdminPanel = () => {
         adminModal.classList.remove("active");
         adminModal.setAttribute("aria-hidden", "true");
+        sessionStorage.removeItem("anr_admin_authorized");
+        showToast("SIGNED OUT OF CPANEL");
     };
+    if (signOutBtn) signOutBtn.onclick = closeAdminPanel;
 
-    adminModal.onclick = (e) => {
-        if (e.target === adminModal) {
-            adminModal.classList.remove("active");
-            adminModal.setAttribute("aria-hidden", "true");
-        }
-    };
-
+    // Escape Key Handler
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
-            if (adminModal.classList.contains("active")) {
-                adminModal.classList.remove("active");
-                adminModal.setAttribute("aria-hidden", "true");
-            }
             if (passcodeModal.classList.contains("active")) {
                 passcodeModal.classList.remove("active");
                 passcodeModal.setAttribute("aria-hidden", "true");
@@ -1499,38 +1763,192 @@ function initAdminPanel() {
         }
     });
 
-    // Tab Switching
-    tabButtons.forEach(btn => {
-        btn.onclick = () => {
-            tabButtons.forEach(b => b.classList.remove("active"));
-            tabContents.forEach(c => c.classList.remove("active"));
-            
-            btn.classList.add("active");
-            const target = btn.getAttribute("data-tab");
-            document.getElementById(target).classList.add("active");
+    // ------------------------------------------
+    // 2. W3C WAI-ARIA Accessible Tab Switching
+    // ------------------------------------------
+    const switchTab = (targetTabId) => {
+        tabButtons.forEach(btn => {
+            const isTarget = btn.getAttribute("data-tab") === targetTabId;
+            btn.classList.toggle("active", isTarget);
+            btn.setAttribute("aria-selected", isTarget ? "true" : "false");
+            btn.setAttribute("tabindex", isTarget ? "0" : "-1");
+        });
 
-            if (target === "tab-backup") {
-                exportBackupToTextarea();
+        tabContents.forEach(content => {
+            const isTarget = content.id === targetTabId;
+            content.classList.toggle("active", isTarget);
+        });
+
+        if (targetTabId === "tab-backup") {
+            exportBackupToTextarea();
+        }
+    };
+
+    tabButtons.forEach((btn, index) => {
+        btn.onclick = () => switchTab(btn.getAttribute("data-tab"));
+
+        // Keyboard Arrow Navigation (W3C Pattern)
+        btn.onkeydown = (e) => {
+            let nextIndex = null;
+            if (e.key === "ArrowRight") {
+                nextIndex = (index + 1) % tabButtons.length;
+            } else if (e.key === "ArrowLeft") {
+                nextIndex = (index - 1 + tabButtons.length) % tabButtons.length;
+            }
+
+            if (nextIndex !== null) {
+                e.preventDefault();
+                tabButtons[nextIndex].focus();
+                switchTab(tabButtons[nextIndex].getAttribute("data-tab"));
             }
         };
     });
 
-    // Reset Form
+    // ------------------------------------------
+    // 3. Tab 1: Post Editor, Live Preview & Formatting Toolbar
+    // ------------------------------------------
+    let lastActiveTextarea = contentEnInput;
+    [titleEnInput, subtitleEnInput, previewEnInput, contentEnInput, titleKmInput, subtitleKmInput, previewKmInput, contentKmInput].forEach(field => {
+        if (field) {
+            field.addEventListener("focus", () => {
+                if (field.tagName === "TEXTAREA") lastActiveTextarea = field;
+            });
+            field.addEventListener("input", () => {
+                if (previewBox.style.display !== "none") updateLivePreview();
+            });
+        }
+    });
+
+    // Formatting Toolbar Buttons
+    const toolbarButtons = document.querySelectorAll(".editor-toolbar .toolbar-btn");
+    toolbarButtons.forEach(btn => {
+        btn.onclick = () => {
+            const tag = btn.getAttribute("data-tag");
+            const textarea = lastActiveTextarea || contentEnInput;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const selectedText = textarea.value.substring(start, end);
+            let insertion = "";
+
+            switch (tag) {
+                case "bold":
+                    insertion = `<strong>${selectedText || "bold text"}</strong>`;
+                    break;
+                case "italic":
+                    insertion = `<em>${selectedText || "italic text"}</em>`;
+                    break;
+                case "dropcap":
+                    insertion = `<span class="drop-cap">${selectedText || "T"}</span>`;
+                    break;
+                case "quote":
+                    insertion = `<blockquote>${selectedText || "Enter quote citation here..."}</blockquote>`;
+                    break;
+                case "p":
+                    insertion = `<p>${selectedText || "Paragraph content..."}</p>`;
+                    break;
+                case "h3":
+                    insertion = `<h3>${selectedText || "Subheading Title"}</h3>`;
+                    break;
+            }
+
+            textarea.setRangeText(insertion, start, end, "end");
+            textarea.focus();
+            if (previewBox.style.display !== "none") updateLivePreview();
+        };
+    });
+
+    // Live Preview Rendering
+    const updateLivePreview = () => {
+        const title = titleEnInput.value || titleKmInput.value || "Untitled Dispatch";
+        const subtitle = subtitleEnInput.value || subtitleKmInput.value || "";
+        const author = authorInput.value || "ALEXIS VANCE";
+        const category = (categorySelect.value || "NEWS").toUpperCase();
+        const content = contentEnInput.value || contentKmInput.value || "<p>Article content will appear here...</p>";
+        const image = imageInput.value ? `<div class="modal-img-wrap" style="margin-bottom:0.8rem;"><img src="${imageInput.value}" alt="Preview" style="max-width:100%; border:1px solid var(--border-color);"></div>` : "";
+
+        previewContent.innerHTML = `
+            <div class="preview-meta">${category} &bull; BY ${author} &bull; ${new Date().toLocaleDateString()}</div>
+            <h3>${title}</h3>
+            ${subtitle ? `<h4 style="font-family:var(--font-heading); font-style:italic; font-size:1rem; opacity:0.85; margin-bottom:0.6rem;">${subtitle}</h4>` : ""}
+            ${image}
+            <div style="font-family:var(--font-body); font-size:0.9rem; line-height:1.5;">${content}</div>
+        `;
+    };
+
+    if (previewToggleBtn) {
+        previewToggleBtn.onclick = () => {
+            const isHidden = previewBox.style.display === "none";
+            previewBox.style.display = isHidden ? "block" : "none";
+            if (isHidden) {
+                updateLivePreview();
+                previewToggleBtn.textContent = "🙈 HIDE PREVIEW";
+            } else {
+                previewToggleBtn.textContent = "👁️ LIVE PREVIEW";
+            }
+        };
+    }
+
+    if (previewCloseBtn) {
+        previewCloseBtn.onclick = () => {
+            previewBox.style.display = "none";
+            if (previewToggleBtn) previewToggleBtn.textContent = "👁️ LIVE PREVIEW";
+        };
+    }
+
+    // Language Mode Selector
+    const applyLangMode = (mode) => {
+        if (!colEn || !colKm) return;
+        if (mode === "km") {
+            colKm.style.display = "";
+            colEn.style.display = "none";
+        } else if (mode === "en") {
+            colEn.style.display = "";
+            colKm.style.display = "none";
+        } else {
+            colEn.style.display = "";
+            colKm.style.display = "";
+        }
+    };
+
+    if (langModeSelect) {
+        langModeSelect.onchange = () => applyLangMode(langModeSelect.value);
+        applyLangMode(langModeSelect.value);
+    }
+
+    // Form Reset
     formResetBtn.onclick = () => {
         postForm.reset();
         postIdInput.value = "";
+        if (langModeSelect) {
+            langModeSelect.value = "bilingual";
+            applyLangMode("bilingual");
+        }
+        if (featuredCheckbox) featuredCheckbox.checked = false;
+        if (previewBox.style.display !== "none") updateLivePreview();
     };
 
     // Auto-Translate Form Fields
     if (translateBtn) {
         translateBtn.onclick = async () => {
-            const titleKm = titleKmInput.value.trim();
-            const subtitleKm = subtitleKmInput.value.trim();
-            const previewKm = previewKmInput.value.trim();
-            const contentKm = contentKmInput.value.trim();
+            const mode = langModeSelect ? langModeSelect.value : "bilingual";
+            const srcLang = (mode === "en") ? "en" : "km";
+            const tgtLang = (mode === "en") ? "km" : "en";
+            const srcTitleInput = (mode === "en") ? titleEnInput : titleKmInput;
+            const srcSubtitleInput = (mode === "en") ? subtitleEnInput : subtitleKmInput;
+            const srcPreviewInput = (mode === "en") ? previewEnInput : previewKmInput;
+            const srcContentInput = (mode === "en") ? contentEnInput : contentKmInput;
+            const tgtTitleInput = (mode === "en") ? titleKmInput : titleEnInput;
+            const tgtSubtitleInput = (mode === "en") ? subtitleKmInput : subtitleEnInput;
+            const tgtPreviewInput = (mode === "en") ? previewKmInput : previewEnInput;
+            const tgtContentInput = (mode === "en") ? contentKmInput : contentEnInput;
 
-            if (!titleKm && !previewKm && !contentKm) {
-                alert(currentLanguage === "km" ? "សូមបញ្ចូលអត្ថបទជាភាសាខ្មែរមុននឹងបកប្រែ។" : "Please enter some Khmer text first.");
+            const titleSrc = srcTitleInput.value.trim();
+            const subtitleSrc = srcSubtitleInput.value.trim();
+            const previewSrc = srcPreviewInput.value.trim();
+            const contentSrc = srcContentInput.value.trim();
+
+            if (!titleSrc && !previewSrc && !contentSrc) {
+                alert("Please enter some text in the source language fields first.");
                 return;
             }
 
@@ -1539,20 +1957,20 @@ function initAdminPanel() {
             translateBtn.disabled = true;
 
             try {
-                // Concurrently translate all Khmer text fields using MyMemory translation API
-                const [titleEn, subtitleEn, previewEn, contentEn] = await Promise.all([
-                    translateText(titleKm, "km", "en"),
-                    translateText(subtitleKm, "km", "en"),
-                    translateText(previewKm, "km", "en"),
-                    translateText(contentKm, "km", "en")
+                const [titleTrans, subtitleTrans, previewTrans, contentTrans] = await Promise.all([
+                    translateText(titleSrc, srcLang, tgtLang),
+                    translateText(subtitleSrc, srcLang, tgtLang),
+                    translateText(previewSrc, srcLang, tgtLang),
+                    translateText(contentSrc, srcLang, tgtLang)
                 ]);
 
-                if (titleEn) titleEnInput.value = titleEn;
-                if (subtitleEn) subtitleEnInput.value = subtitleEn;
-                if (previewEn) previewEnInput.value = previewEn;
-                if (contentEn) contentEnInput.value = contentEn;
+                if (titleTrans) tgtTitleInput.value = titleTrans;
+                if (subtitleTrans) tgtSubtitleInput.value = subtitleTrans;
+                if (previewTrans) tgtPreviewInput.value = previewTrans;
+                if (contentTrans) tgtContentInput.value = contentTrans;
 
-                showToast(currentLanguage === "km" ? "ការបកប្រែដោយស្វ័យប្រវត្តិកំពុងបញ្ចប់" : "AUTO-TRANSLATION COMPLETE");
+                showToast("AUTO-TRANSLATION COMPLETE");
+                if (previewBox.style.display !== "none") updateLivePreview();
             } catch (err) {
                 console.error("Auto-translation failed:", err);
                 alert("Translation lookup failed. Please verify your connection and try again.");
@@ -1563,26 +1981,51 @@ function initAdminPanel() {
         };
     }
 
-    // Render Posts List in Admin Panel
+    // ------------------------------------------
+    // 4. Archived Dispatches List, Search & Filtering
+    // ------------------------------------------
     const renderAdminPostsList = () => {
         if (!postsListContainer) return;
         postsListContainer.innerHTML = "";
         
-        ARTICLES_DB.forEach(art => {
+        const searchQueryVal = archiveSearchInput ? archiveSearchInput.value.toLowerCase().trim() : "";
+        
+        let filteredArticles = ARTICLES_DB.filter(art => {
+            const matchesCat = (activeArchiveCategory === "all") || (art.category === activeArchiveCategory);
+            if (!matchesCat) return false;
+
+            if (!searchQueryVal) return true;
+            const titleEn = art.en ? art.en.title.toLowerCase() : "";
+            const titleKm = art.km ? art.km.title.toLowerCase() : "";
+            const author = art.author ? art.author.toLowerCase() : "";
+            return titleEn.includes(searchQueryVal) || titleKm.includes(searchQueryVal) || author.includes(searchQueryVal);
+        });
+
+        if (postsCountBadge) {
+            postsCountBadge.textContent = `${filteredArticles.length} DISPATCHES`;
+        }
+
+        if (filteredArticles.length === 0) {
+            postsListContainer.innerHTML = `<p class="mono-text text-sm" style="opacity:0.6; padding:0.5rem;">No dispatches match your search filters.</p>`;
+            return;
+        }
+
+        filteredArticles.forEach(art => {
             const isCustom = art.id.startsWith("custom-");
             const metaStr = `${art.category.toUpperCase()} &bull; BY ${art.author}`;
-            const contentLang = art[currentLanguage];
+            const contentLang = art[currentLanguage] || art.en;
+            const isFeatured = art.featured ? '<span style="color:#d4af37;">★ LEAD</span>' : '';
             
             const item = document.createElement("div");
             item.className = "admin-post-item";
             item.innerHTML = `
                 <div class="admin-post-item-info">
                     <h4 class="admin-post-item-title">${contentLang.title}</h4>
-                    <span class="admin-post-item-meta">${metaStr} ${isCustom ? '<span style="color:#0056b3;">[USER]</span>' : '[SYSTEM]'}</span>
+                    <span class="admin-post-item-meta">${metaStr} ${isCustom ? '<span style="color:#0056b3;">[USER]</span>' : '[SYSTEM]'} ${isFeatured}</span>
                 </div>
                 <div class="admin-post-item-actions">
-                    <button class="admin-action-link edit">[EDIT]</button>
-                    ${isCustom ? '<button class="admin-action-link delete">[DEL]</button>' : ''}
+                    <button class="admin-action-link edit" title="Edit Article">[EDIT]</button>
+                    ${isCustom ? '<button class="admin-action-link delete" title="Delete Article">[DEL]</button>' : ''}
                 </div>
             `;
             
@@ -1592,26 +2035,27 @@ function initAdminPanel() {
                 categorySelect.value = art.category;
                 authorInput.value = art.author;
                 imageInput.value = art.image || "";
+                if (featuredCheckbox) featuredCheckbox.checked = !!art.featured;
                 
-                titleEnInput.value = art.en.title;
-                subtitleEnInput.value = art.en.subTitle || "";
-                previewEnInput.value = art.en.preview;
-                contentEnInput.value = art.en.content;
+                titleEnInput.value = art.en ? art.en.title : "";
+                subtitleEnInput.value = art.en ? (art.en.subTitle || "") : "";
+                previewEnInput.value = art.en ? art.en.preview : "";
+                contentEnInput.value = art.en ? art.en.content : "";
                 
-                titleKmInput.value = art.km.title;
-                subtitleKmInput.value = art.km.subTitle || "";
-                previewKmInput.value = art.km.preview;
-                contentKmInput.value = art.km.content;
+                titleKmInput.value = art.km ? art.km.title : "";
+                subtitleKmInput.value = art.km ? (art.km.subTitle || "") : "";
+                previewKmInput.value = art.km ? art.km.preview : "";
+                contentKmInput.value = art.km ? art.km.content : "";
 
-                // Switch scroll view back to top of form
                 postForm.scrollTop = 0;
-                showToast("ARTICLE DATA LOADED TO FORM");
+                showToast("ARTICLE LOADED TO EDITOR");
+                if (previewBox.style.display !== "none") updateLivePreview();
             };
             
-            // Delete Handler (Custom Only)
+            // Delete Handler
             if (isCustom) {
                 item.querySelector(".delete").onclick = () => {
-                    if (confirm("Are you sure you want to delete this article?")) {
+                    if (confirm(`Are you sure you want to delete dispatch "${contentLang.title}"?`)) {
                         deleteCustomArticle(art.id);
                     }
                 };
@@ -1621,12 +2065,31 @@ function initAdminPanel() {
         });
     };
 
-    // Delete Custom Article
+    renderAdminPostsListGlobal = renderAdminPostsList;
+
+    if (archiveSearchInput) {
+        archiveSearchInput.oninput = renderAdminPostsList;
+    }
+
+    filterPills.forEach(pill => {
+        pill.onclick = () => {
+            filterPills.forEach(p => p.classList.remove("active"));
+            pill.classList.add("active");
+            activeArchiveCategory = pill.getAttribute("data-filter");
+            renderAdminPostsList();
+        };
+    });
+
     const deleteCustomArticle = (id) => {
         let customArticles = JSON.parse(localStorage.getItem("anr_custom_articles")) || [];
         customArticles = customArticles.filter(art => art.id !== id);
         localStorage.setItem("anr_custom_articles", JSON.stringify(customArticles));
         
+        // Delete from Firebase Cloud if connected
+        if (isFirebaseConnected && firestoreDb) {
+            firestoreDb.collection("dispatches").doc(id).delete().catch(err => console.error("Cloud delete error:", err));
+        }
+
         initCustomData();
         renderArticles();
         renderAdminPostsList();
@@ -1642,8 +2105,21 @@ function initAdminPanel() {
         const category = categorySelect.value;
         const author = authorInput.value.trim().toUpperCase();
         const image = imageInput.value.trim();
+        const mode = langModeSelect ? langModeSelect.value : "bilingual";
+        const isFeatured = featuredCheckbox ? featuredCheckbox.checked : false;
         
-        // Calculate read time roughly
+        if (mode === "km") {
+            titleEnInput.value = titleKmInput.value;
+            subtitleEnInput.value = subtitleKmInput.value;
+            previewEnInput.value = previewKmInput.value;
+            contentEnInput.value = contentKmInput.value;
+        } else if (mode === "en") {
+            titleKmInput.value = titleEnInput.value;
+            subtitleKmInput.value = subtitleEnInput.value;
+            previewKmInput.value = previewEnInput.value;
+            contentKmInput.value = contentEnInput.value;
+        }
+
         const cleanContentEn = contentEnInput.value.replace(/<[^>]*>/g, "");
         const wordCountVal = cleanContentEn.split(/\s+/).filter(Boolean).length;
         const readTimeVal = Math.max(1, Math.round(wordCountVal / 200));
@@ -1652,6 +2128,7 @@ function initAdminPanel() {
             id,
             category,
             author,
+            featured: isFeatured,
             date: new Date().toLocaleDateString("en-US", { month: "long", day: "2-digit", year: "numeric" }).toUpperCase(),
             dateKm: new Date().toLocaleDateString("km-KH", { month: "long", day: "2-digit", year: "numeric" }),
             wordCount: `${wordCountVal} WORDS`,
@@ -1676,62 +2153,359 @@ function initAdminPanel() {
         let customArticles = JSON.parse(localStorage.getItem("anr_custom_articles")) || [];
         
         if (existingId) {
-            // Update
             const idx = customArticles.findIndex(art => art.id === existingId);
             if (idx > -1) {
                 customArticles[idx] = newArticle;
             } else {
-                // If it is modifying a system article (save as custom override)
                 customArticles.push(newArticle);
             }
             showToast("ARTICLE MODIFICATIONS SAVED");
         } else {
-            // Create
             customArticles.push(newArticle);
-            showToast("NEW ARTICLE ENGRAVED & PUBLISHED");
+            showToast("NEW DISPATCH ENGRAVED & PUBLISHED");
         }
 
         localStorage.setItem("anr_custom_articles", JSON.stringify(customArticles));
         
-        // Refresh site data
+        // Save to Firebase Cloud Firestore if connected
+        if (isFirebaseConnected && firestoreDb) {
+            firestoreDb.collection("dispatches").doc(id).set(newArticle)
+                .then(() => showToast("DISPATCH SYNCED TO FIREBASE CLOUD"))
+                .catch(err => console.error("Firebase save error:", err));
+        }
+
         initCustomData();
         renderArticles();
         renderAdminPostsList();
         
-        // Reset form
         postForm.reset();
         postIdInput.value = "";
+        if (featuredCheckbox) featuredCheckbox.checked = false;
+        if (previewBox.style.display !== "none") updateLivePreview();
     };
 
-    // Load Ads inputs
+    // ------------------------------------------
+    // 5. Tab 2: Editorial & Ticker Settings
+    // ------------------------------------------
+    const loadEditorialInputs = () => {
+        const savedSettings = JSON.parse(localStorage.getItem("anr_editorial_settings")) || {
+            title: "ANR DAILY NEWS",
+            vol: "VOL. CXXIV NO. 42",
+            price: "PRICE: ONE BIT",
+            est: "EST. 1902",
+            weather: "LONDON 14°C"
+        };
+
+        if (mastheadTitleInput) mastheadTitleInput.value = savedSettings.title.replace(/<[^>]*>/g, "");
+        if (mastheadVolInput) mastheadVolInput.value = savedSettings.vol;
+        if (mastheadPriceInput) mastheadPriceInput.value = savedSettings.price;
+        if (mastheadEstInput) mastheadEstInput.value = savedSettings.est;
+        if (weatherCityInputSettings) weatherCityInputSettings.value = savedSettings.weather;
+    };
+
+    if (editorialForm) {
+        editorialForm.onsubmit = (e) => {
+            e.preventDefault();
+            const config = {
+                title: `<span class='brand-color'>ANR</span> ${mastheadTitleInput.value.replace("ANR", "").trim()}`,
+                vol: mastheadVolInput.value.trim(),
+                price: mastheadPriceInput.value.trim(),
+                est: mastheadEstInput.value.trim(),
+                weather: weatherCityInputSettings.value.trim()
+            };
+            localStorage.setItem("anr_editorial_settings", JSON.stringify(config));
+            
+            // Sync to Firebase if connected
+            if (isFirebaseConnected && firestoreDb) {
+                firestoreDb.collection("site_meta").doc("editorial").set(config)
+                    .catch(err => console.error("Firebase editorial sync error:", err));
+            }
+
+            renderEditorialSettings();
+            showToast("EDITORIAL SETTINGS SAVED");
+        };
+    }
+
+    if (editorialResetBtn) {
+        editorialResetBtn.onclick = () => {
+            localStorage.removeItem("anr_editorial_settings");
+            loadEditorialInputs();
+            renderEditorialSettings();
+            showToast("EDITORIAL SETTINGS RESTORED TO DEFAULT");
+        };
+    }
+
+    // Ticker Bulletins Manager
+    const getStoredBulletins = () => {
+        const stored = JSON.parse(localStorage.getItem("anr_ticker_bulletins"));
+        return Array.isArray(stored) && stored.length > 0 ? stored : TICKER_ITEMS_EN;
+    };
+
+    const renderBulletinsManager = () => {
+        if (!bulletinsManageList) return;
+        bulletinsManageList.innerHTML = "";
+        const bulletins = getStoredBulletins();
+
+        bulletins.forEach((itemText, index) => {
+            const row = document.createElement("div");
+            row.className = "bulletin-manage-item mono-text text-sm";
+            row.innerHTML = `
+                <span style="flex:1; overflow:hidden; text-overflow:ellipsis;">• ${itemText}</span>
+                <button type="button" class="admin-action-link delete" style="padding:0.2rem 0.4rem;">[REMOVE]</button>
+            `;
+            row.querySelector(".delete").onclick = () => {
+                const updated = bulletins.filter((_, i) => i !== index);
+                localStorage.setItem("anr_ticker_bulletins", JSON.stringify(updated));
+                renderBulletinsManager();
+                syncLiveTicker();
+                showToast("BULLETIN REMOVED");
+            };
+            bulletinsManageList.appendChild(row);
+        });
+    };
+
+    const syncLiveTicker = () => {
+        const bulletins = getStoredBulletins();
+        if (tickerContent) {
+            tickerContent.innerHTML = bulletins.join(" &nbsp;&bull;&nbsp; ") + " &nbsp;&bull;&nbsp; " + bulletins.join(" &nbsp;&bull;&nbsp; ");
+        }
+    };
+
+    if (addBulletinBtn && newBulletinInput) {
+        addBulletinBtn.onclick = () => {
+            const val = newBulletinInput.value.trim();
+            if (!val) return;
+            const bulletins = getStoredBulletins();
+            bulletins.push(val);
+            localStorage.setItem("anr_ticker_bulletins", JSON.stringify(bulletins));
+            newBulletinInput.value = "";
+            renderBulletinsManager();
+            syncLiveTicker();
+            showToast("NEW BULLETIN ADDED TO TICKER");
+        };
+    }
+
+    // ------------------------------------------
+    // 6. Tab 3: Ads Management
+    // ------------------------------------------
     const loadAdsInputs = () => {
         const savedAds = JSON.parse(localStorage.getItem("anr_custom_ads")) || { left: "", right: "" };
         if (leftAdTextarea) leftAdTextarea.value = savedAds.left || "";
         if (rightAdTextarea) rightAdTextarea.value = savedAds.right || "";
     };
 
-    // Save Ads Form Submit
-    adsForm.onsubmit = (e) => {
-        e.preventDefault();
-        const config = {
-            left: leftAdTextarea.value,
-            right: rightAdTextarea.value
+    if (adsForm) {
+        adsForm.onsubmit = (e) => {
+            e.preventDefault();
+            const config = {
+                left: leftAdTextarea.value,
+                right: rightAdTextarea.value
+            };
+            localStorage.setItem("anr_custom_ads", JSON.stringify(config));
+            renderCustomAds();
+            showToast("ADVERTISING BLOCKS UPDATED");
         };
-        localStorage.setItem("anr_custom_ads", JSON.stringify(config));
-        renderCustomAds();
-        showToast("ADVERTISING BLOCKS UPDATED");
+    }
+
+    if (clearAdsBtn) {
+        clearAdsBtn.onclick = () => {
+            localStorage.removeItem("anr_custom_ads");
+            loadAdsInputs();
+            renderCustomAds();
+            showToast("VINTAGE ILLUSTRATED ADS RESTORED");
+        };
+    }
+
+    // ------------------------------------------
+    // 7. Tab 4: Media & Assets Gallery
+    // ------------------------------------------
+    const renderMediaPresets = () => {
+        if (!mediaPresetGrid) return;
+        mediaPresetGrid.innerHTML = "";
+
+        PRESET_MEDIA_ASSETS.forEach(asset => {
+            const card = document.createElement("div");
+            card.className = "media-card";
+            card.innerHTML = `
+                <div class="media-card-img">
+                    <img src="${asset.url}" alt="${asset.name}" loading="lazy">
+                </div>
+                <div class="media-card-title">${asset.name}</div>
+                <div class="media-card-actions">
+                    <button type="button" class="use-btn" title="Use as cover image in post form">USE AS COVER</button>
+                    <button type="button" class="copy-btn" title="Copy URL">COPY URL</button>
+                </div>
+            `;
+
+            card.querySelector(".use-btn").onclick = () => {
+                imageInput.value = asset.url;
+                switchTab("tab-posts");
+                if (previewBox.style.display !== "none") updateLivePreview();
+                showToast(`IMAGE APPLIED: ${asset.name}`);
+            };
+
+            card.querySelector(".copy-btn").onclick = () => {
+                navigator.clipboard.writeText(asset.url).then(() => {
+                    showToast("IMAGE URL COPIED");
+                }).catch(() => {
+                    showToast(`URL: ${asset.url}`);
+                });
+            };
+
+            mediaPresetGrid.appendChild(card);
+        });
     };
 
-    // Backup & Restore
+    if (mediaTestBtn && mediaTestUrlInput) {
+        mediaTestBtn.onclick = () => {
+            const url = mediaTestUrlInput.value.trim();
+            if (!url) return;
+            mediaPreviewImg.src = url;
+            mediaTestPreview.style.display = "block";
+        };
+    }
+
+    if (mediaUseBtn && mediaTestUrlInput) {
+        mediaUseBtn.onclick = () => {
+            const url = mediaTestUrlInput.value.trim();
+            if (!url) return;
+            imageInput.value = url;
+            switchTab("tab-posts");
+            if (previewBox.style.display !== "none") updateLivePreview();
+            showToast("CUSTOM IMAGE URL APPLIED TO DISPATCH");
+        };
+    }
+
+    // ------------------------------------------
+    // 8. Tab 5: Security Passcode, Firebase Cloud & Database Backup
+    // ------------------------------------------
+    if (passcodeChangeForm) {
+        passcodeChangeForm.onsubmit = (e) => {
+            e.preventDefault();
+            const currentPass = currentPasscodeInput.value;
+            const newPass = newPasscodeInput.value;
+            const confirmPass = confirmPasscodeInput.value;
+
+            if (currentPass !== getMasterPasscode()) {
+                alert("Current passcode is incorrect.");
+                return;
+            }
+
+            if (newPass.length < 4) {
+                alert("New passcode must be at least 4 characters long.");
+                return;
+            }
+
+            if (newPass !== confirmPass) {
+                alert("New passcodes do not match.");
+                return;
+            }
+
+            localStorage.setItem("anr_admin_passcode", newPass);
+            passcodeChangeForm.reset();
+            showToast("MASTER TELEGRAPH KEY UPDATED");
+        };
+    }
+
+    // Firebase Cloud Connect / Disconnect / Push handlers
+    if (firebaseSaveBtn && firebaseConfigInput) {
+        firebaseSaveBtn.onclick = () => {
+            const val = firebaseConfigInput.value.trim();
+            if (!val) {
+                alert("Please paste your firebaseConfig snippet from the Firebase Console.");
+                return;
+            }
+            localStorage.setItem("anr_firebase_config", val);
+            initFirebaseCloud();
+            if (isFirebaseConnected) {
+                showToast("🔥 FIREBASE CLOUD CONNECTED SUCCESSFULLY!");
+            } else {
+                alert("Could not read valid Firebase keys. Please ensure you copied the entire const firebaseConfig = { ... } object from Project Settings > Your Apps.");
+            }
+        };
+    }
+
+    if (firebaseDisconnectBtn) {
+        firebaseDisconnectBtn.onclick = () => {
+            localStorage.removeItem("anr_firebase_config");
+            isFirebaseConnected = false;
+            firestoreDb = null;
+            if (unsubscribeFirestoreArticles) unsubscribeFirestoreArticles();
+            if (unsubscribeFirestoreSettings) unsubscribeFirestoreSettings();
+            
+            const statusBadge = document.getElementById("cloud-status-badge");
+            if (statusBadge) {
+                statusBadge.innerHTML = "⚪ LOCALSTORAGE MODE";
+                statusBadge.style.color = "var(--ink-black)";
+            }
+            if (firebaseConfigInput) firebaseConfigInput.value = "";
+            showToast("DISCONNECTED FROM FIREBASE CLOUD");
+        };
+    }
+
+    if (firebasePushBtn) {
+        firebasePushBtn.onclick = async () => {
+            if (!isFirebaseConnected || !firestoreDb) {
+                alert("Please connect Firebase first before pushing data.");
+                return;
+            }
+
+            try {
+                // 1. Gather all base articles + custom local articles
+                const customArticles = JSON.parse(localStorage.getItem("anr_custom_articles")) || [];
+                const allArticlesMap = new Map();
+                ARTICLES_DB.forEach(art => allArticlesMap.set(art.id, art));
+                customArticles.forEach(art => allArticlesMap.set(art.id, art));
+                const allArticles = Array.from(allArticlesMap.values());
+
+                // 2. Batch upload to Firestore 'dispatches'
+                const batch = firestoreDb.batch();
+                allArticles.forEach(art => {
+                    const docRef = firestoreDb.collection("dispatches").doc(art.id);
+                    batch.set(docRef, art, { merge: true });
+                });
+                await batch.commit();
+
+                // 3. Upload editorial settings & tickers to Firestore
+                const editorialSettings = JSON.parse(localStorage.getItem("anr_editorial_settings")) || {
+                    mastheadTitle: "ANR DAILY NEWS",
+                    volNo: "VOL. CXXIV NO. 42",
+                    price: "PRICE: ONE BIT",
+                    est: "EST. 1902"
+                };
+                const tickerBulletins = JSON.parse(localStorage.getItem("anr_ticker_bulletins")) || [
+                    "STOCK TICKER REPLACED BY NEURAL INTENT PRICING ACROSS CONTINENTS.",
+                    "NEW ZEPPELIN ROUTE ESTABLISHED BETWEEN FRANKFURT AND TOKYO.",
+                    "OFFLINE-FIRST WEB ARCHITECTURES SURPASS CLOUD PLATFORMS IN USER RETENTION."
+                ];
+
+                await firestoreDb.collection("editorial_settings").doc("masthead").set({
+                    ...editorialSettings,
+                    tickerBulletins,
+                    updatedAt: Date.now()
+                }, { merge: true });
+
+                showToast(`🔥 SUCCESS: ${allArticles.length} ARTICLES & EDITORIAL SETTINGS PUSHED TO CLOUD!`);
+            } catch (err) {
+                console.error("Cloud push failed:", err);
+                alert("Failed to push data to Firebase: " + err.message);
+            }
+        };
+    }
+
     const exportBackupToTextarea = () => {
         const customArticles = JSON.parse(localStorage.getItem("anr_custom_articles")) || [];
         const customAds = JSON.parse(localStorage.getItem("anr_custom_ads")) || { left: "", right: "" };
+        const editorialSettings = JSON.parse(localStorage.getItem("anr_editorial_settings")) || null;
+        const tickerBulletins = JSON.parse(localStorage.getItem("anr_ticker_bulletins")) || null;
         
         const backupObj = {
-            version: "1.0",
+            version: "2.0",
             timestamp: Date.now(),
             customArticles,
-            customAds
+            customAds,
+            editorialSettings,
+            tickerBulletins
         };
         
         if (backupTextarea) {
@@ -1739,41 +2513,88 @@ function initAdminPanel() {
         }
     };
 
-    backupBtn.onclick = () => {
-        exportBackupToTextarea();
-        if (backupTextarea) {
-            backupTextarea.select();
-            document.execCommand("copy");
-            showToast("BACKUP COPIED TO CLIPBOARD");
-        }
-    };
-
-    restoreBtn.onclick = () => {
-        if (!backupTextarea || !backupTextarea.value.trim()) {
-            alert("Please paste the backup JSON block first.");
-            return;
-        }
-        try {
-            const backupObj = JSON.parse(backupTextarea.value.trim());
-            if (backupObj && Array.isArray(backupObj.customArticles)) {
-                localStorage.setItem("anr_custom_articles", JSON.stringify(backupObj.customArticles));
-                if (backupObj.customAds) {
-                    localStorage.setItem("anr_custom_ads", JSON.stringify(backupObj.customAds));
-                }
-                
-                initCustomData();
-                renderArticles();
-                renderCustomAds();
-                renderAdminPostsList();
-                loadAdsInputs();
-                
-                showToast("DATABASE CONFIG RESTORED SUCCESS");
-            } else {
-                alert("Invalid backup format. Make sure it contains 'customArticles'.");
+    if (backupBtn) {
+        backupBtn.onclick = () => {
+            exportBackupToTextarea();
+            if (backupTextarea) {
+                backupTextarea.select();
+                navigator.clipboard.writeText(backupTextarea.value).then(() => {
+                    showToast("SNAPSHOT COPIED TO CLIPBOARD");
+                }).catch(() => {
+                    showToast("SNAPSHOT GENERATED IN TEXTAREA");
+                });
             }
-        } catch (err) {
-            console.error("Restore failed:", err);
-            alert("Error parsing backup JSON. Please check your config block format.");
-        }
-    };
+        };
+    }
+
+    if (restoreBtn) {
+        restoreBtn.onclick = () => {
+            if (!backupTextarea || !backupTextarea.value.trim()) {
+                alert("Please paste the backup JSON block first.");
+                return;
+            }
+            try {
+                const backupObj = JSON.parse(backupTextarea.value.trim());
+                if (backupObj && (Array.isArray(backupObj.customArticles) || backupObj.customAds || backupObj.editorialSettings)) {
+                    if (Array.isArray(backupObj.customArticles)) {
+                        localStorage.setItem("anr_custom_articles", JSON.stringify(backupObj.customArticles));
+                    }
+                    if (backupObj.customAds) {
+                        localStorage.setItem("anr_custom_ads", JSON.stringify(backupObj.customAds));
+                    }
+                    if (backupObj.editorialSettings) {
+                        localStorage.setItem("anr_editorial_settings", JSON.stringify(backupObj.editorialSettings));
+                    }
+                    if (backupObj.tickerBulletins) {
+                        localStorage.setItem("anr_ticker_bulletins", JSON.stringify(backupObj.tickerBulletins));
+                    }
+                    
+                    initCustomData();
+                    renderArticles();
+                    renderCustomAds();
+                    renderAdminPostsList();
+                    loadEditorialInputs();
+                    renderBulletinsManager();
+                    syncLiveTicker();
+                    loadAdsInputs();
+                    
+                    showToast("COMPLETE DATABASE RESTORED SUCCESSFULLY");
+                } else {
+                    alert("Invalid backup format. Make sure it contains valid snapshot keys.");
+                }
+            } catch (err) {
+                console.error("Restore failed:", err);
+                alert("Error parsing backup JSON. Please check your config block format.");
+            }
+        };
+    }
+
+    if (factoryResetBtn) {
+        factoryResetBtn.onclick = () => {
+            const confirmed = confirm("⚠️ DANGER: Are you sure you want to perform a FACTORY RESET?\nThis will erase all custom articles, custom ads, ticker alerts, and restore the default passcode!");
+            if (confirmed) {
+                const secondConfirm = confirm("FINAL CONFIRMATION: Reset all database records to original seed state?");
+                if (secondConfirm) {
+                    localStorage.removeItem("anr_custom_articles");
+                    localStorage.removeItem("anr_custom_ads");
+                    localStorage.removeItem("anr_editorial_settings");
+                    localStorage.removeItem("anr_ticker_bulletins");
+                    localStorage.removeItem("anr_admin_passcode");
+                    localStorage.removeItem("anr_firebase_config");
+                    
+                    initCustomData();
+                    renderArticles();
+                    renderCustomAds();
+                    renderAdminPostsList();
+                    loadEditorialInputs();
+                    renderBulletinsManager();
+                    syncLiveTicker();
+                    loadAdsInputs();
+                    exportBackupToTextarea();
+                    
+                    showToast("FACTORY RESET COMPLETED");
+                }
+            }
+        };
+    }
 }

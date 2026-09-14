@@ -203,77 +203,126 @@
     </div>
 
     <!-- Admin Control Panel (cPanel) Modal -->
-    <div id="admin-panel-modal" class="modal-overlay" aria-hidden="true" role="dialog">
+    <div id="admin-panel-modal" class="modal-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="admin-panel-heading">
         <div class="modal-container admin-container">
-            <div class="modal-header">
-                <h2 class="serif-title">ANR NEWS CPANEL — CONTROL MENU</h2>
-                <button id="admin-modal-close" class="close-btn" aria-label="Close admin modal">&times;</button>
+            <div class="modal-header" style="justify-content: space-between; align-items: center;">
+                <h2 class="serif-title" id="admin-panel-heading">ANR NEWS CPANEL — EDITORIAL DESK</h2>
+                <div style="display: flex; gap: 0.8rem; align-items: center;">
+                    <span id="cpanel-status-indicator" class="mono-text text-sm" style="opacity: 0.7;">AUTH: VERIFIED</span>
+                    <button id="admin-signout-btn" class="admin-clear-btn mono-text" style="border-color: var(--accent-red, #b00); color: var(--accent-red, #b00); letter-spacing: 0.08em; padding: 0.4rem 0.8rem;" aria-label="Sign out of admin panel">🔓 SIGN OUT</button>
+                </div>
             </div>
             
-            <div class="admin-tabs">
-                <button class="admin-tab-btn active" data-tab="tab-posts">MANAGE POSTS</button>
-                <button class="admin-tab-btn" data-tab="tab-ads">MANAGE ADS</button>
-                <button class="admin-tab-btn" data-tab="tab-backup">BACKUP & RESTORE</button>
+            <!-- W3C WAI-ARIA Accessible Tablist -->
+            <div class="admin-tabs" role="tablist" aria-label="cPanel Control Tabs">
+                <button class="admin-tab-btn active" role="tab" id="tab-btn-posts" aria-selected="true" aria-controls="tab-posts" data-tab="tab-posts">📰 MANAGE POSTS</button>
+                <button class="admin-tab-btn" role="tab" id="tab-btn-editorial" aria-selected="false" aria-controls="tab-editorial" data-tab="tab-editorial">⚙️ EDITORIAL & TICKER</button>
+                <button class="admin-tab-btn" role="tab" id="tab-btn-ads" aria-selected="false" aria-controls="tab-ads" data-tab="tab-ads">📢 MANAGE ADS</button>
+                <button class="admin-tab-btn" role="tab" id="tab-btn-media" aria-selected="false" aria-controls="tab-media" data-tab="tab-media">🖼️ MEDIA & ASSETS</button>
+                <button class="admin-tab-btn" role="tab" id="tab-btn-backup" aria-selected="false" aria-controls="tab-backup" data-tab="tab-backup">🔒 DATABASE & SECURITY</button>
             </div>
             
             <div class="modal-body admin-body">
                 <!-- Tab 1: Manage Posts -->
-                <div id="tab-posts" class="admin-tab-content active">
+                <div id="tab-posts" class="admin-tab-content active" role="tabpanel" aria-labelledby="tab-btn-posts">
                     <div class="admin-split-layout">
                         <!-- Left Panel: Article Form -->
                         <form id="admin-post-form" class="admin-form">
-                            <h3 class="card-title-serif">PUBLISH / EDIT ARTICLE</h3>
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.4rem;">
+                                <h3 class="card-title-serif" style="margin: 0;">PUBLISH / EDIT DISPATCH</h3>
+                                <button type="button" id="admin-preview-toggle-btn" class="toolbar-btn mono-text" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">👁️ LIVE PREVIEW</button>
+                            </div>
                             <input type="hidden" id="admin-post-id" value="">
                             
-                            <div class="form-group">
-                                <label for="admin-post-category" class="mono-text">Category:</label>
-                                <select id="admin-post-category" required>
-                                    <option value="technology">Technology</option>
-                                    <option value="world">World</option>
-                                    <option value="culture">Culture</option>
-                                    <option value="opinion">Opinion / Editorial</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="admin-post-author" class="mono-text">Author:</label>
-                                <input type="text" id="admin-post-author" placeholder="e.g. ALEXIS VANCE" required>
+                            <div class="form-row-compact">
+                                <div class="form-group flex-1">
+                                    <label for="admin-post-category" class="mono-text">Category:</label>
+                                    <select id="admin-post-category" required>
+                                        <option value="technology">Technology</option>
+                                        <option value="world">World</option>
+                                        <option value="culture">Culture</option>
+                                        <option value="opinion">Opinion / Editorial</option>
+                                    </select>
+                                </div>
+                                <div class="form-group flex-1">
+                                    <label for="admin-post-author" class="mono-text">Author:</label>
+                                    <input type="text" id="admin-post-author" placeholder="e.g. ALEXIS VANCE" required>
+                                </div>
                             </div>
                             
                             <div class="form-group">
                                 <label for="admin-post-image" class="mono-text">Cover Image URL (optional):</label>
                                 <input type="text" id="admin-post-image" placeholder="e.g. assets/images/silicon_telegraph.png">
                             </div>
-                            
+
+                            <div class="form-row-compact" style="align-items: center; justify-content: space-between;">
+                                <div class="form-group flex-1">
+                                    <label for="admin-post-lang-mode" class="mono-text">Language Mode:</label>
+                                    <select id="admin-post-lang-mode">
+                                        <option value="bilingual">🌐 Bilingual (Both KM + EN)</option>
+                                        <option value="km">🇰🇭 Khmer Only (Auto-mirror to EN)</option>
+                                        <option value="en">🇺🇸 English Only (Auto-mirror to KM)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin-top: 1rem;">
+                                    <label class="checkbox-label mono-text" style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem;">
+                                        <input type="checkbox" id="admin-post-featured">
+                                        <span>🌟 Pin as Lead Story</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Rich Formatting Toolbar -->
+                            <div class="editor-toolbar mono-text" aria-label="Formatting Toolbar">
+                                <span class="toolbar-label">TAGS:</span>
+                                <button type="button" class="toolbar-btn" data-tag="bold" title="Insert Bold">&lt;b&gt;</button>
+                                <button type="button" class="toolbar-btn" data-tag="italic" title="Insert Italic">&lt;i&gt;</button>
+                                <button type="button" class="toolbar-btn" data-tag="dropcap" title="Insert Drop Cap">&lt;DropCap&gt;</button>
+                                <button type="button" class="toolbar-btn" data-tag="quote" title="Insert Blockquote">&lt;Quote&gt;</button>
+                                <button type="button" class="toolbar-btn" data-tag="p" title="Insert Paragraph">&lt;p&gt;</button>
+                                <button type="button" class="toolbar-btn" data-tag="h3" title="Insert Subheading">&lt;h3&gt;</button>
+                            </div>
+
+                            <!-- Live Newspaper Preview (Toggleable) -->
+                            <div id="admin-live-preview-box" class="admin-live-preview-box" style="display: none;">
+                                <div class="preview-header mono-text">
+                                    <span>📰 LIVE PRINT PREVIEW</span>
+                                    <button type="button" id="admin-preview-close-btn" class="preview-close-btn">&times;</button>
+                                </div>
+                                <div class="preview-content" id="admin-live-preview-content">
+                                    <!-- Populated dynamically -->
+                                </div>
+                            </div>
+
                             <div class="form-row-split">
-                                <div class="lang-column">
-                                    <h4 class="mono-text">English Version</h4>
+                                <div id="admin-col-en" class="lang-column">
+                                    <h4 class="mono-text">🇺🇸 English Version</h4>
                                     <div class="form-group">
-                                        <input type="text" id="admin-post-title-en" placeholder="Title (EN)" required>
+                                        <input type="text" id="admin-post-title-en" placeholder="Title (EN)">
                                     </div>
                                     <div class="form-group">
                                         <input type="text" id="admin-post-subtitle-en" placeholder="Subtitle (EN)">
                                     </div>
                                     <div class="form-group">
-                                        <textarea id="admin-post-preview-en" placeholder="Preview Text (EN)" rows="3" required></textarea>
+                                        <textarea id="admin-post-preview-en" placeholder="Preview Text (EN)" rows="2"></textarea>
                                     </div>
                                     <div class="form-group">
-                                        <textarea id="admin-post-content-en" placeholder="Full Article Body HTML (EN)" rows="6" required></textarea>
+                                        <textarea id="admin-post-content-en" placeholder="Full Article Body HTML (EN)" rows="5"></textarea>
                                     </div>
                                 </div>
-                                <div class="lang-column">
-                                    <h4 class="mono-text">Khmer Version</h4>
+                                <div id="admin-col-km" class="lang-column">
+                                    <h4 class="mono-text">🇰🇭 ខ្មែរ Khmer Version</h4>
                                     <div class="form-group">
-                                        <input type="text" id="admin-post-title-km" placeholder="ចំណងជើង (KM)" required>
+                                        <input type="text" id="admin-post-title-km" placeholder="ចំណងជើង (KM)">
                                     </div>
                                     <div class="form-group">
                                         <input type="text" id="admin-post-subtitle-km" placeholder="ចំណងជើងរង (KM)">
                                     </div>
                                     <div class="form-group">
-                                        <textarea id="admin-post-preview-km" placeholder="អត្ថបទសង្ខេប (KM)" rows="3" required></textarea>
+                                        <textarea id="admin-post-preview-km" placeholder="អត្ថបទសង្ខេប (KM)" rows="2"></textarea>
                                     </div>
                                     <div class="form-group">
-                                        <textarea id="admin-post-content-km" placeholder="ខ្លឹមសារអត្ថបទពេញ HTML (KM)" rows="6" required></textarea>
+                                        <textarea id="admin-post-content-km" placeholder="ខ្លឹមសារអត្ថបទពេញ HTML (KM)" rows="5"></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -284,23 +333,37 @@
                                 <button type="button" id="admin-translate-btn" class="admin-submit-btn mono-text" style="background:#008080; border-color:#008080; color:#ffffff;">🔄 TRANSLATE KM TO EN</button>
                             </div>
                             
-                            <div class="dictionary-lookup-section" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border-light); text-align: left;">
-                                <span class="mono-text text-sm" style="font-weight: bold; display: block; margin-bottom: 0.5rem; color: var(--ink-black);">📚 DICTIONARY LOOKUP REFERENCES:</span>
-                                <div style="display: flex; flex-wrap: wrap; gap: 0.8rem;">
-                                    <a href="https://angkor-database.asia/reference-library/samdech-sangkha-reach-chuon-nath-s-khmer-dictionary" target="_blank" class="mono-text text-sm" style="color: var(--brand-blue); text-decoration: underline;">Chuon Nath</a>
-                                    <a href="https://kheng.info/" target="_blank" class="mono-text text-sm" style="color: var(--brand-blue); text-decoration: underline;">Kheng.info</a>
-                                    <a href="https://glosbe.com/km/en" target="_blank" class="mono-text text-sm" style="color: var(--brand-blue); text-decoration: underline;">Glosbe (Khmer-En)</a>
-                                    <a href="https://www.english-khmer.com/" target="_blank" class="mono-text text-sm" style="color: var(--brand-blue); text-decoration: underline;">English-Khmer.com</a>
-                                    <a href="https://khmerdict.com/" target="_blank" class="mono-text text-sm" style="color: var(--brand-blue); text-decoration: underline;">Khmerdict</a>
-                                    <a href="https://www.freelang.net/online/khmer.php" target="_blank" class="mono-text text-sm" style="color: var(--brand-blue); text-decoration: underline;">Freelang</a>
-                                    <a href="https://www.lexilogos.com/english/khmer_dictionary.htm" target="_blank" class="mono-text text-sm" style="color: var(--brand-blue); text-decoration: underline;">Lexilogos Reference</a>
+                            <div class="dictionary-lookup-section" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-light); text-align: left;">
+                                <span class="mono-text text-sm" style="font-weight: bold; display: block; margin-bottom: 0.3rem; color: var(--ink-black);">📚 DICTIONARY LOOKUP REFERENCES:</span>
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.6rem;">
+                                    <a href="https://angkor-database.asia/reference-library/samdech-sangkha-reach-chuon-nath-s-khmer-dictionary" target="_blank" rel="noopener noreferrer" class="mono-text text-sm" style="color: var(--brand-blue); text-decoration: underline;">Chuon Nath</a>
+                                    <a href="https://kheng.info/" target="_blank" rel="noopener noreferrer" class="mono-text text-sm" style="color: var(--brand-blue); text-decoration: underline;">Kheng.info</a>
+                                    <a href="https://glosbe.com/km/en" target="_blank" rel="noopener noreferrer" class="mono-text text-sm" style="color: var(--brand-blue); text-decoration: underline;">Glosbe (Khmer-En)</a>
+                                    <a href="https://www.english-khmer.com/" target="_blank" rel="noopener noreferrer" class="mono-text text-sm" style="color: var(--brand-blue); text-decoration: underline;">English-Khmer</a>
+                                    <a href="https://khmerdict.com/" target="_blank" rel="noopener noreferrer" class="mono-text text-sm" style="color: var(--brand-blue); text-decoration: underline;">Khmerdict</a>
+                                    <a href="https://www.freelang.net/online/khmer.php" target="_blank" rel="noopener noreferrer" class="mono-text text-sm" style="color: var(--brand-blue); text-decoration: underline;">Freelang</a>
                                 </div>
                             </div>
                         </form>
                         
-                        <!-- Right Panel: Posts List -->
+                        <!-- Right Panel: Posts List with Search & Filter -->
                         <div class="admin-list-panel">
-                            <h3 class="card-title-serif">ARCHIVED DISPATCHES</h3>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <h3 class="card-title-serif" style="margin: 0;">ARCHIVED DISPATCHES</h3>
+                                <span id="admin-posts-count" class="mono-text text-sm" style="background: rgba(0,0,0,0.06); padding: 0.15rem 0.5rem; border-radius: 2px;">0 DISPATCHES</span>
+                            </div>
+                            
+                            <div class="admin-archive-controls">
+                                <input type="text" id="admin-archive-search" class="admin-search-input mono-text" placeholder="🔍 Search by title or author...">
+                                <div class="admin-filter-pills mono-text">
+                                    <button type="button" class="filter-pill active" data-filter="all">ALL</button>
+                                    <button type="button" class="filter-pill" data-filter="technology">TECH</button>
+                                    <button type="button" class="filter-pill" data-filter="world">WORLD</button>
+                                    <button type="button" class="filter-pill" data-filter="culture">CULTURE</button>
+                                    <button type="button" class="filter-pill" data-filter="opinion">OPINION</button>
+                                </div>
+                            </div>
+
                             <div class="admin-posts-list" id="admin-posts-list-container">
                                 <!-- Populated dynamically -->
                             </div>
@@ -308,40 +371,193 @@
                     </div>
                 </div>
                 
-                <!-- Tab 2: Manage Ads -->
-                <div id="tab-ads" class="admin-tab-content">
-                    <form id="admin-ads-form" class="admin-form full-width-form">
+                <!-- Tab 2: Editorial & Ticker Settings (NEW) -->
+                <div id="tab-editorial" class="admin-tab-content" role="tabpanel" aria-labelledby="tab-btn-editorial">
+                    <div class="admin-form full-width-form" style="max-width: 800px;">
+                        <h3 class="card-title-serif">MASTHEAD & EDITORIAL CUSTOMIZATION</h3>
+                        <p class="mono-text text-sm" style="margin-bottom:1rem; opacity:0.8;">Customize the newspaper header elements, issue volume, price, and live telegraph ticker alerts.</p>
+                        
+                        <form id="admin-editorial-form" class="editorial-settings-box">
+                            <div class="form-row-compact">
+                                <div class="form-group flex-1">
+                                    <label for="admin-masthead-title" class="mono-text">Newspaper Masthead Title:</label>
+                                    <input type="text" id="admin-masthead-title" placeholder="ANR DAILY NEWS" required>
+                                </div>
+                                <div class="form-group flex-1">
+                                    <label for="admin-masthead-vol" class="mono-text">Volume & Issue String:</label>
+                                    <input type="text" id="admin-masthead-vol" placeholder="VOL. CXXIV NO. 42">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row-compact">
+                                <div class="form-group flex-1">
+                                    <label for="admin-masthead-price" class="mono-text">Price Tag:</label>
+                                    <input type="text" id="admin-masthead-price" placeholder="PRICE: ONE BIT">
+                                </div>
+                                <div class="form-group flex-1">
+                                    <label for="admin-masthead-est" class="mono-text">Established Tag:</label>
+                                    <input type="text" id="admin-masthead-est" placeholder="EST. 1902">
+                                </div>
+                                <div class="form-group flex-1">
+                                    <label for="admin-weather-city" class="mono-text">Default Weather City:</label>
+                                    <input type="text" id="admin-weather-city" placeholder="LONDON 14°C">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row" style="margin-bottom: 1.5rem;">
+                                <button type="submit" class="admin-submit-btn mono-text">SAVE EDITORIAL SETTINGS</button>
+                                <button type="button" id="admin-editorial-reset" class="admin-clear-btn mono-text">RESET TO DEFAULTS</button>
+                            </div>
+                        </form>
+
+                        <div class="double-divider" style="margin: 1.5rem 0;"></div>
+
+                        <!-- Ticker Bulletins Editor -->
+                        <h3 class="card-title-serif">LIVE TELEGRAPH TICKER BULLETINS</h3>
+                        <p class="mono-text text-sm" style="margin-bottom: 0.8rem; opacity: 0.8;">Manage the ticker messages scrolling across the front page marquee.</p>
+                        
+                        <div class="ticker-editor-box">
+                            <div class="form-row-compact" style="align-items: flex-end;">
+                                <div class="form-group flex-1">
+                                    <label for="admin-new-bulletin-input" class="mono-text">New Bulletin Alert (Bilingual or English):</label>
+                                    <input type="text" id="admin-new-bulletin-input" placeholder="e.g. BREAKING: Solar Zeppelins inaugurate trans-Pacific freight route...">
+                                </div>
+                                <button type="button" id="admin-add-bulletin-btn" class="admin-submit-btn mono-text" style="height: 38px;">ADD BULLETIN</button>
+                            </div>
+                            <div class="bulletins-manage-list" id="admin-bulletins-list">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Manage Ads -->
+                <div id="tab-ads" class="admin-tab-content" role="tabpanel" aria-labelledby="tab-btn-ads">
+                    <form id="admin-ads-form" class="admin-form full-width-form" style="max-width: 800px;">
                         <h3 class="card-title-serif">ADVERTISING CONTROL PANEL</h3>
-                        <p class="mono-text text-sm" style="margin-bottom:1rem; opacity:0.8;">Paste raw HTML, custom image banner links, or Google AdSense script tags here. Leave empty to use default ads.</p>
+                        <p class="mono-text text-sm" style="margin-bottom:1rem; opacity:0.8;">Paste raw HTML, custom banner images, or Google AdSense script tags here. Leave empty to use the default vintage illustrated ads.</p>
                         
                         <div class="form-group">
-                            <label for="admin-ad-left" class="mono-text">Left Sidebar Ad Block (Telegraph Co.):</label>
-                            <textarea id="admin-ad-left" placeholder="Paste Ad HTML / Google AdSense script code here..." rows="8"></textarea>
+                            <label for="admin-ad-left" class="mono-text">Left Sidebar Ad Block (Telegraph Co. placement):</label>
+                            <textarea id="admin-ad-left" placeholder="Paste Ad HTML / Google AdSense script code here..." rows="6"></textarea>
                         </div>
                         
                         <div class="form-group">
                             <label for="admin-ad-right" class="mono-text">Right Sidebar Ad Block (Meteorological card area):</label>
-                            <textarea id="admin-ad-right" placeholder="Paste Ad HTML / Google AdSense script code here..." rows="8"></textarea>
-                        </div>
-                        
-                        <button type="submit" class="admin-submit-btn mono-text">SAVE ADVERTISING UNITS</button>
-                    </form>
-                </div>
-                
-                <!-- Tab 3: Backup & Restore -->
-                <div id="tab-backup" class="admin-tab-content">
-                    <div class="admin-form full-width-form">
-                        <h3 class="card-title-serif">EXPORT / IMPORT DATABASE CONFIG</h3>
-                        <p class="mono-text text-sm" style="margin-bottom:1rem; opacity:0.8;">Copy this configuration code block to save your custom posts and ads. Paste a previously exported code block to restore them.</p>
-                        
-                        <div class="form-group">
-                            <label for="admin-backup-data" class="mono-text">JSON Database Block:</label>
-                            <textarea id="admin-backup-data" placeholder="Database JSON block will appear here..." rows="12"></textarea>
+                            <textarea id="admin-ad-right" placeholder="Paste Ad HTML / Google AdSense script code here..." rows="6"></textarea>
                         </div>
                         
                         <div class="form-row">
-                            <button type="button" id="admin-backup-btn" class="admin-submit-btn mono-text">EXPORT CURRENT CONFIG</button>
-                            <button type="button" id="admin-restore-btn" class="admin-submit-btn mono-text" style="background:#0056b3; border-color:#0056b3; margin-left:1rem;">IMPORT CONFIG</button>
+                            <button type="submit" class="admin-submit-btn mono-text">SAVE ADVERTISING UNITS</button>
+                            <button type="button" id="admin-ads-clear-btn" class="admin-clear-btn mono-text">RESTORE VINTAGE ADS</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Tab 4: Media & Assets Gallery (NEW) -->
+                <div id="tab-media" class="admin-tab-content" role="tabpanel" aria-labelledby="tab-btn-media">
+                    <div class="admin-form full-width-form" style="max-width: 850px;">
+                        <h3 class="card-title-serif">NEWSPAPER MEDIA & ASSET GALLERY</h3>
+                        <p class="mono-text text-sm" style="margin-bottom:1rem; opacity:0.8;">Quickly copy project asset URLs or test custom external image links to use as dispatch cover art.</p>
+                        
+                        <div class="media-preview-tool">
+                            <div class="form-row-compact" style="align-items: flex-end;">
+                                <div class="form-group flex-1">
+                                    <label for="admin-media-test-url" class="mono-text">Test Image URL:</label>
+                                    <input type="text" id="admin-media-test-url" placeholder="Enter image URL to preview...">
+                                </div>
+                                <button type="button" id="admin-media-test-btn" class="admin-submit-btn mono-text" style="height: 38px;">TEST IMAGE</button>
+                                <button type="button" id="admin-media-use-btn" class="admin-clear-btn mono-text" style="height: 38px;">USE IN FORM</button>
+                            </div>
+                            <div id="admin-media-test-preview" class="media-test-frame" style="display: none;">
+                                <img id="admin-media-preview-img" src="" alt="Test Preview">
+                            </div>
+                        </div>
+
+                        <div class="double-divider" style="margin: 1.5rem 0;"></div>
+
+                        <h4 class="mono-text" style="font-size: 0.9rem; margin-bottom: 0.8rem;">📦 DEFAULT PROJECT ASSETS:</h4>
+                        <div class="media-assets-grid" id="admin-media-preset-grid">
+                            <!-- Populated with preset cards -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tab 5: Database & Security (Passcode + Backup) -->
+                <div id="tab-backup" class="admin-tab-content" role="tabpanel" aria-labelledby="tab-btn-backup">
+                    <div class="admin-form full-width-form" style="max-width: 800px;">
+                        <!-- Master Passcode Security -->
+                        <h3 class="card-title-serif">SECURITY & TELEGRAPH KEY ACCESS</h3>
+                        <p class="mono-text text-sm" style="margin-bottom:1rem; opacity:0.8;">Change the Master Telegraph Key passcode required to enter this cPanel.</p>
+                        
+                        <form id="admin-passcode-change-form" class="security-box" style="margin-bottom: 2rem;">
+                            <div class="form-row-compact">
+                                <div class="form-group flex-1">
+                                    <label for="admin-current-passcode" class="mono-text">Current Passcode:</label>
+                                    <input type="password" id="admin-current-passcode" placeholder="••••••••••••" required>
+                                </div>
+                                <div class="form-group flex-1">
+                                    <label for="admin-new-passcode" class="mono-text">New Passcode:</label>
+                                    <input type="password" id="admin-new-passcode" placeholder="Enter new passcode" required>
+                                </div>
+                                <div class="form-group flex-1">
+                                    <label for="admin-confirm-passcode" class="mono-text">Confirm New Passcode:</label>
+                                    <input type="password" id="admin-confirm-passcode" placeholder="Repeat new passcode" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="admin-submit-btn mono-text" style="margin-top: 0.5rem;">UPDATE MASTER TELEGRAPH KEY</button>
+                        </form>
+
+                        <div class="double-divider" style="margin: 1.5rem 0;"></div>
+
+                        <!-- Firebase Cloud Database Sync -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <h3 class="card-title-serif" style="margin: 0;">🔥 FIREBASE CLOUD DATABASE (FIRESTORE)</h3>
+                            <span id="cloud-status-badge" class="mono-text text-sm" style="background: rgba(0,0,0,0.06); padding: 0.2rem 0.6rem; border-radius: 2px; font-weight: bold;">⚪ LOCALSTORAGE MODE</span>
+                        </div>
+                        <p class="mono-text text-sm" style="margin-bottom:1rem; opacity:0.8;">Connect your free Google Firebase Firestore database to enable real-time multi-device publishing worldwide.</p>
+                        
+                        <div class="firebase-sync-box" style="background: rgba(0,0,0,0.02); border: 1px solid var(--border-light); padding: 1rem; border-radius: 2px; margin-bottom: 1.5rem;">
+                            <div class="form-group">
+                                <label for="admin-firebase-config-input" class="mono-text">Firebase Config Object (from Firebase Console):</label>
+                                <textarea id="admin-firebase-config-input" placeholder='Paste your firebaseConfig object or JSON here, e.g.:&#10;{&#10;  "apiKey": "AIzaSy...",&#10;  "authDomain": "my-project.firebaseapp.com",&#10;  "projectId": "my-project",&#10;  "storageBucket": "...",&#10;  "appId": "..."&#10;}' rows="5"></textarea>
+                            </div>
+                            <div class="form-row" style="margin-bottom: 0.5rem; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+                                    <button type="button" id="admin-firebase-save-btn" class="admin-submit-btn mono-text" style="background:#d97706; border-color:#d97706;">⚡ CONNECT & SAVE CLOUD</button>
+                                    <button type="button" id="admin-firebase-push-btn" class="admin-clear-btn mono-text" title="Upload all current local articles to Firebase">⬆️ PUSH LOCAL TO CLOUD</button>
+                                </div>
+                                <button type="button" id="admin-firebase-disconnect-btn" class="admin-clear-btn mono-text" style="color: var(--accent-red, #b00); border-color: var(--border-light);">DISCONNECT</button>
+                            </div>
+                            
+                            <!-- Step-by-step Setup Guide -->
+                            <details style="margin-top: 0.8rem; font-size: 0.78rem;" class="mono-text">
+                                <summary style="cursor: pointer; color: var(--brand-blue); font-weight: bold;">📖 How to get your free Firebase Config (3 quick steps):</summary>
+                                <ol style="padding-left: 1.2rem; margin-top: 0.5rem; line-height: 1.6; opacity: 0.9;">
+                                    <li>Go to <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" style="color: var(--brand-blue); text-decoration: underline;">console.firebase.google.com</a> and click <b>Create a project</b>.</li>
+                                    <li>Click <b>Build &gt; Firestore Database</b> &gt; <b>Create Database</b> (select <i>Start in test mode</i>).</li>
+                                    <li>Click <b>Project Settings (⚙️)</b> &gt; <b>General</b> &gt; <b>Your apps &gt; Web (&lt;/&gt;)</b> &gt; copy the <code>firebaseConfig</code> code snippet and paste it above!</li>
+                                </ol>
+                            </details>
+                        </div>
+
+                        <div class="double-divider" style="margin: 1.5rem 0;"></div>
+
+                        <!-- Database Backup & Restore -->
+                        <h3 class="card-title-serif">EXPORT / IMPORT COMPLETE DATABASE</h3>
+                        <p class="mono-text text-sm" style="margin-bottom:1rem; opacity:0.8;">Export or import all custom articles, editorial settings, ticker bulletins, and advertising configurations in a single portable JSON snapshot.</p>
+                        
+                        <div class="form-group">
+                            <label for="admin-backup-data" class="mono-text">Portable JSON Database Snapshot:</label>
+                            <textarea id="admin-backup-data" placeholder="Database snapshot JSON block will appear here..." rows="6"></textarea>
+                        </div>
+                        
+                        <div class="form-row" style="align-items: center; justify-content: space-between;">
+                            <div style="display: flex; gap: 0.8rem;">
+                                <button type="button" id="admin-backup-btn" class="admin-submit-btn mono-text">EXPORT DATABASE</button>
+                                <button type="button" id="admin-restore-btn" class="admin-submit-btn mono-text" style="background:#0056b3; border-color:#0056b3;">IMPORT SNAPSHOT</button>
+                            </div>
+                            <button type="button" id="admin-factory-reset-btn" class="admin-clear-btn mono-text" style="border-color: var(--accent-red, #b00); color: var(--accent-red, #b00);">⚠️ FACTORY RESET</button>
                         </div>
                     </div>
                 </div>
@@ -349,7 +565,11 @@
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Firebase SDKs (Official Google CDN Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <!-- App Scripts -->
     <script src="app.js"></script>
 </body>
 
