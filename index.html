@@ -212,8 +212,8 @@
                 <h2 class="serif-title" id="admin-panel-heading">ANR NEWS CPANEL — EDITORIAL DESK</h2>
                 <div style="display: flex; gap: 0.8rem; align-items: center;">
                     <span id="cpanel-status-indicator" class="mono-text text-sm" style="opacity: 0.7;">AUTH: VERIFIED</span>
-                    <button id="admin-signout-btn" class="admin-clear-btn mono-text" style="border-color: var(--accent-red, #b00); color: var(--accent-red, #b00); letter-spacing: 0.08em; padding: 0.4rem 0.8rem;" aria-label="Sign out of admin panel">🔓 SIGN OUT</button>
-                    <button id="admin-modal-close-btn" class="close-btn" style="padding: 0 0.5rem; font-size: 1.8rem; cursor: pointer; line-height: 1;" aria-label="Close cPanel">&times;</button>
+                    <button type="button" id="admin-signout-btn" onclick="if(window.signOutAdminPanel) window.signOutAdminPanel();" class="admin-clear-btn mono-text" style="border-color: var(--accent-red, #b00); color: var(--accent-red, #b00); letter-spacing: 0.08em; padding: 0.4rem 0.8rem;" aria-label="Sign out of admin panel">🔓 SIGN OUT</button>
+                    <button type="button" id="admin-modal-close-btn" onclick="if(window.closeAdminPanel) window.closeAdminPanel();" class="admin-submit-btn mono-text" style="padding: 0.4rem 0.9rem; font-weight: bold; cursor: pointer; letter-spacing: 0.05em;" aria-label="Close cPanel">✕ CLOSE [ESC]</button>
                 </div>
             </div>
             

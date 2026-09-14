@@ -1568,6 +1568,127 @@ async function translateText(text, fromLang, toLang) {
 let renderAdminPostsListGlobal = null;
 
 // ------------------------------------------
+function initCustomData() {
+    const customArticles = JSON.parse(localStorage.getItem("anr_custom_articles")) || [];
+    
+    // Remove any previously merged custom articles from ARTICLES_DB
+    for (let i = ARTICLES_DB.length - 1; i >= 0; i--) {
+        if (ARTICLES_DB[i].id.startsWith("custom-")) {
+            ARTICLES_DB.splice(i, 1);
+        }
+    }
+    
+    // Merge new custom articles (place featured articles at top)
+    customArticles.forEach(art => {
+        if (art.featured) {
+            ARTICLES_DB.unshift(art);
+        } else {
+            ARTICLES_DB.push(art);
+        }
+    });
+
+    renderEditorialSettings();
+}
+
+// Render dynamic Masthead and Editorial info
+function renderEditorialSettings() {
+    const defaultSettings = {
+        title: "<span class='brand-color'>ANR</span> DAILY NEWS",
+        vol: "VOL. CXXIV NO. 42",
+        price: "PRICE: ONE BIT",
+        est: "EST. 1902",
+        weather: "LONDON 14°C"
+    };
+
+    const savedSettings = JSON.parse(localStorage.getItem("anr_editorial_settings")) || defaultSettings;
+    const isKm = currentLanguage === "km";
+
+    const mastheadTitleEl = document.getElementById("masthead-title-text");
+    const mastheadVolEl = document.getElementById("masthead-vol");
+    const mastheadPriceEl = document.getElementById("masthead-price");
+    const mastheadEstEl = document.getElementById("masthead-est");
+    const weatherWidgetEl = document.getElementById("weather-widget");
+
+    if (mastheadTitleEl && !isKm) mastheadTitleEl.innerHTML = savedSettings.title;
+    if (mastheadVolEl && !isKm) mastheadVolEl.textContent = savedSettings.vol;
+    if (mastheadPriceEl && !isKm) mastheadPriceEl.textContent = savedSettings.price;
+    if (mastheadEstEl && !isKm) mastheadEstEl.textContent = savedSettings.est;
+    if (weatherWidgetEl && !isKm && savedSettings.weather) {
+        weatherWidgetEl.innerHTML = `${savedSettings.weather} <span class="weather-icon">☁</span>`;
+    }
+}
+
+// Safely execute embedded <script> tags when inserting custom ad HTML
+function safeInjectHTML(container, htmlCode) {
+    if (!container) return;
+    container.innerHTML = htmlCode;
+    
+    const scripts = container.querySelectorAll("script");
+    scripts.forEach(oldScript => {
+        const newScript = document.createElement("script");
+        Array.from(oldScript.attributes).forEach(attr => {
+            newScript.setAttribute(attr.name, attr.value);
+        });
+        newScript.textContent = oldScript.textContent;
+        oldScript.parentNode.replaceChild(newScript, oldScript);
+    });
+}
+
+function renderCustomAds() {
+    const leftAdContainer = document.getElementById("left-ad-container");
+    const rightAdContainer = document.getElementById("right-ad-container");
+    
+    const savedAds = JSON.parse(localStorage.getItem("anr_custom_ads")) || { left: "", right: "" };
+    const t = TRANSLATIONS[currentLanguage];
+
+    // Left Ad
+    if (leftAdContainer) {
+        if (savedAds.left && savedAds.left.trim() !== "") {
+            safeInjectHTML(leftAdContainer, savedAds.left);
+        } else {
+            leftAdContainer.innerHTML = `
+                <div class="vintage-ad">
+                    <div class="ad-border">
+                        <p class="ad-title mono-text" id="ad-title-text">${t.adTitle}</p>
+                        <p class="ad-body" id="ad-body-text">${t.adBody}</p>
+                        <span class="ad-sub" id="ad-sub-text">${t.adSub}</span>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    // Right Ad
+    if (rightAdContainer) {
+        if (savedAds.right && savedAds.right.trim() !== "") {
+            safeInjectHTML(rightAdContainer, savedAds.right);
+        } else {
+            rightAdContainer.innerHTML = "";
+        }
+    }
+}
+
+// Translation helper using MyMemory public API
+async function translateText(text, fromLang, toLang) {
+    if (!text || text.trim() === "") return "";
+    try {
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data && data.responseData && data.responseData.translatedText) {
+            const decoded = document.createElement("textarea");
+            decoded.innerHTML = data.responseData.translatedText;
+            return decoded.value;
+        }
+        throw new Error("Invalid response format");
+    } catch (err) {
+        console.error("Translation error:", err);
+        return "";
+    }
+}
+
+let renderAdminPostsListGlobal = null;
+
 // ------------------------------------------
 // cPanel Main Initialization (Fully Hoisted & Fail-Safe)
 // ------------------------------------------
@@ -1716,6 +1837,11 @@ function initAdminPanel() {
         sessionStorage.removeItem("anr_admin_authorized");
         showToast("SIGNED OUT OF CPANEL");
     }
+
+    // Expose globally for direct fail-safe HTML calls
+    window.closeAdminPanel = closeAdminPanel;
+    window.signOutAdminPanel = signOutAdminPanel;
+    window.triggerAdminAccess = triggerAdminAccess;
 
     // W3C Accessible Tab Switcher
     function switchTab(targetTabId) {
