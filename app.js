@@ -413,53 +413,98 @@ let ttsAudioIndex = 0;
 let heroSliderInterval = null;
 let heroSliderIdx = 0;
 
-// --- DOM Elements ---
-const articlesGrid = document.getElementById("main-articles-grid");
-const bulletinsList = document.getElementById("bulletins-list");
-const opinionList = document.getElementById("opinion-list");
-const tickerContent = document.getElementById("ticker-content");
-const liveTimeEl = document.getElementById("live-time");
-const themeToggle = document.getElementById("theme-toggle");
-const bookmarkToggleBtn = document.getElementById("bookmark-toggle-btn");
-let bookmarkCountEl = document.getElementById("bookmark-count");
-const searchInput = document.getElementById("search-input");
-const searchBtn = document.getElementById("search-btn");
-const navLinks = document.querySelectorAll(".nav-link");
+// --- DOM Elements & Safe Helper Functions ---
+let articlesGrid = null;
+let bulletinsList = null;
+let opinionList = null;
+let tickerContent = null;
+let liveTimeEl = null;
+let themeToggle = null;
+let bookmarkToggleBtn = null;
+let bookmarkCountEl = null;
+let searchInput = null;
+let searchBtn = null;
+let navLinks = [];
+let widgetTemp = null;
+let widgetDesc = null;
+let weatherWidgetTop = null;
+let weatherCityInput = null;
+let weatherCityBtn = null;
+let newsletterForm = null;
+let newsletterEmail = null;
+let newsletterStatus = null;
+let stampConfirmed = null;
+let articleModal = null;
+let modalArticleContent = null;
+let modalClose = null;
+let fontDecBtn = null;
+let fontIncBtn = null;
+let readerTtsBtn = null;
+let readerBookmarkBtn = null;
+let readerPrintBtn = null;
 
-// Weather Elements
-const widgetTemp = document.getElementById("widget-temp");
-const widgetDesc = document.getElementById("widget-desc");
-const weatherWidgetTop = document.getElementById("weather-widget");
-const weatherCityInput = document.getElementById("weather-city");
-const weatherCityBtn = document.getElementById("weather-city-btn");
+function queryDOMElements() {
+    articlesGrid = document.getElementById("main-articles-grid");
+    bulletinsList = document.getElementById("bulletins-list");
+    opinionList = document.getElementById("opinion-list");
+    tickerContent = document.getElementById("ticker-content");
+    liveTimeEl = document.getElementById("live-time");
+    themeToggle = document.getElementById("theme-toggle");
+    bookmarkToggleBtn = document.getElementById("bookmark-toggle-btn");
+    bookmarkCountEl = document.getElementById("bookmark-count");
+    searchInput = document.getElementById("search-input");
+    searchBtn = document.getElementById("search-btn");
+    navLinks = Array.from(document.querySelectorAll(".nav-link"));
+    widgetTemp = document.getElementById("widget-temp");
+    widgetDesc = document.getElementById("widget-desc");
+    weatherWidgetTop = document.getElementById("weather-widget");
+    weatherCityInput = document.getElementById("weather-city");
+    weatherCityBtn = document.getElementById("weather-city-btn");
+    newsletterForm = document.getElementById("newsletter-form");
+    newsletterEmail = document.getElementById("newsletter-email");
+    newsletterStatus = document.getElementById("newsletter-status");
+    stampConfirmed = document.getElementById("stamp-confirmed");
+    articleModal = document.getElementById("article-modal");
+    modalArticleContent = document.getElementById("modal-article-content");
+    modalClose = document.getElementById("modal-close");
+    fontDecBtn = document.getElementById("reader-font-dec");
+    fontIncBtn = document.getElementById("reader-font-inc");
+    readerTtsBtn = document.getElementById("reader-tts");
+    readerBookmarkBtn = document.getElementById("reader-bookmark");
+    readerPrintBtn = document.getElementById("reader-print");
+}
 
-// Newsletter Elements
-const newsletterForm = document.getElementById("newsletter-form");
-const newsletterEmail = document.getElementById("newsletter-email");
-const newsletterStatus = document.getElementById("newsletter-status");
-const stampConfirmed = document.getElementById("stamp-confirmed");
+function safeText(idOrEl, text) {
+    const el = typeof idOrEl === "string" ? document.getElementById(idOrEl) : idOrEl;
+    if (el && text !== undefined && text !== null) el.textContent = text;
+}
 
-// Modal Elements
-const articleModal = document.getElementById("article-modal");
-const modalArticleContent = document.getElementById("modal-article-content");
-const modalClose = document.getElementById("modal-close");
-const fontDecBtn = document.getElementById("reader-font-dec");
-const fontIncBtn = document.getElementById("reader-font-inc");
-const readerTtsBtn = document.getElementById("reader-tts");
-const readerBookmarkBtn = document.getElementById("reader-bookmark");
-const readerPrintBtn = document.getElementById("reader-print");
+function safeHTML(idOrEl, html) {
+    const el = typeof idOrEl === "string" ? document.getElementById(idOrEl) : idOrEl;
+    if (el && html !== undefined && html !== null) el.innerHTML = html;
+}
 
-// --- Initialization ---
-document.addEventListener("DOMContentLoaded", () => {
-    initCustomData(); // Merge custom posts from LocalStorage
-    initFirebaseCloud(); // Auto-connect to Firebase Cloud Firestore if configured
-    initClock();
-    initTicker();
-    initTheme();
-    translateUI(); // This renders the static elements and triggers the initial page render
-    setupEventListeners();
-    initAdminPanel(); // Bind cPanel controls and events
-});
+// --- Initialization Runner (Isolated try-catch blocks) ---
+function initializeApp() {
+    console.log("Initializing ANR Daily News application...");
+    try { queryDOMElements(); } catch (e) { console.error("Error in queryDOMElements:", e); }
+    try { initCustomData(); } catch (e) { console.error("Error in initCustomData:", e); }
+    try { initFirebaseCloud(); } catch (e) { console.error("Error in initFirebaseCloud:", e); }
+    try { initClock(); } catch (e) { console.error("Error in initClock:", e); }
+    try { initTicker(); } catch (e) { console.error("Error in initTicker:", e); }
+    try { initTheme(); } catch (e) { console.error("Error in initTheme:", e); }
+    try { translateUI(); } catch (e) { console.error("Error in translateUI:", e); }
+    try { setupEventListeners(); } catch (e) { console.error("Error in setupEventListeners:", e); }
+    try { initAdminPanel(); } catch (e) { console.error("Error in initAdminPanel:", e); }
+    console.log("ANR Daily News initialized successfully.");
+}
+
+// Auto-run on DOM ready or immediately if already loaded
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeApp);
+} else {
+    initializeApp();
+}
 
 // --- Functions ---
 
@@ -1098,66 +1143,76 @@ function updateWeather() {
 function translateUI() {
     document.documentElement.setAttribute("lang", currentLanguage);
     const t = TRANSLATIONS[currentLanguage];
+    if (!t) return;
     
     // Header & Buttons
-    bookmarkToggleBtn.innerHTML = `${t.savedArticles} (<span id="bookmark-count">${bookmarkedArticles.length}</span>)`;
+    safeHTML("bookmark-toggle-btn", `${t.savedArticles} (<span id="bookmark-count">${bookmarkedArticles.length}</span>)`);
     bookmarkCountEl = document.getElementById("bookmark-count");
     
     const nextThemeText = (document.documentElement.getAttribute("data-theme") || "light") === "dark" 
         ? t.dayEdition 
         : t.nightEdition;
-    themeToggle.textContent = nextThemeText;
-    
-    document.getElementById("language-toggle").textContent = currentLanguage === "en" ? "ភាសាខ្មែរ" : "English";
+    safeText("theme-toggle", nextThemeText);
+    safeText("language-toggle", currentLanguage === "en" ? "ភាសាខ្មែរ" : "English");
 
     // Masthead
-    document.getElementById("masthead-vol").textContent = t.volNo;
-    document.getElementById("masthead-title-text").innerHTML = t.mastheadTitle;
-    document.getElementById("masthead-price").textContent = t.price;
-    document.getElementById("masthead-est").textContent = t.est;
+    safeText("masthead-vol", t.volNo);
+    safeHTML("masthead-title-text", t.mastheadTitle);
+    safeText("masthead-price", t.price);
+    safeText("masthead-est", t.est);
     
     // Navigation (Front Page, World, etc.)
-    navLinks.forEach(link => {
+    const links = document.querySelectorAll(".nav-link");
+    links.forEach(link => {
         const cat = link.getAttribute("data-category");
-        if (t.nav[cat]) {
+        if (t.nav && t.nav[cat]) {
             link.textContent = t.nav[cat];
         }
     });
 
     // Ticker Title
-    document.getElementById("ticker-title-text").textContent = t.bulletins;
+    safeText("ticker-title-text", t.bulletins);
 
     // Sidebar titles
-    document.getElementById("sidebar-left-title").textContent = t.latestFlashes;
-    document.getElementById("sidebar-right-title").textContent = t.opinionEditorial;
+    safeText("sidebar-left-title", t.latestFlashes);
+    safeText("sidebar-right-title", t.opinionEditorial);
 
     // Render custom ads or default vintage ads
     renderCustomAds();
 
     // Weather Card
-    document.getElementById("weather-detail-title").textContent = t.meteorologicalStamp;
-    weatherCityBtn.textContent = t.update;
-    weatherCityInput.placeholder = t.enterCityPlaceholder;
+    safeText("weather-detail-title", t.meteorologicalStamp);
+    safeText("weather-city-btn", t.update);
+    const weatherCityInputEl = document.getElementById("weather-city");
+    if (weatherCityInputEl) weatherCityInputEl.placeholder = t.enterCityPlaceholder;
 
     // Newsletter Section
-    document.getElementById("newsletter-title-text").textContent = t.subscribeDispatch;
-    document.getElementById("newsletter-desc-text").textContent = t.deliveredMailbox;
-    newsletterEmail.placeholder = t.emailPlaceholder;
-    document.getElementById("newsletter-btn-text").textContent = t.engrave;
-    stampConfirmed.textContent = t.approved;
+    safeText("newsletter-title-text", t.subscribeDispatch);
+    safeText("newsletter-desc-text", t.deliveredMailbox);
+    const newsletterEmailEl = document.getElementById("newsletter-email");
+    if (newsletterEmailEl) newsletterEmailEl.placeholder = t.emailPlaceholder;
+    safeText("newsletter-btn-text", t.engrave);
+    safeText("stamp-confirmed", t.approved);
 
     // Footer Info
-    document.getElementById("footer-logo-text").innerHTML = t.footerLogo;
-    document.getElementById("footer-desc-text").textContent = t.footerDesc;
-    document.getElementById("footer-copyright-text").textContent = t.copyright;
+    safeHTML("footer-logo-text", t.footerLogo);
+    safeText("footer-desc-text", t.footerDesc);
+    safeText("footer-copyright-text", t.copyright);
 
     // Modal Control Tooltips & Labels
-    fontDecBtn.title = t.fontDecTitle;
-    fontIncBtn.title = t.fontIncTitle;
-    readerTtsBtn.textContent = t.speak;
-    readerTtsBtn.title = t.speak;
-    readerBookmarkBtn.title = t.save;
-    readerPrintBtn.title = t.print;
+    const fontDecEl = document.getElementById("reader-font-dec");
+    if (fontDecEl) fontDecEl.title = t.fontDecTitle;
+    const fontIncEl = document.getElementById("reader-font-inc");
+    if (fontIncEl) fontIncEl.title = t.fontIncTitle;
+    const readerTtsEl = document.getElementById("reader-tts");
+    if (readerTtsEl) {
+        readerTtsEl.textContent = t.speak;
+        readerTtsEl.title = t.speak;
+    }
+    const readerBookmarkEl = document.getElementById("reader-bookmark");
+    if (readerBookmarkEl) readerBookmarkEl.title = t.save;
+    const readerPrintEl = document.getElementById("reader-print");
+    if (readerPrintEl) readerPrintEl.title = t.print;
 
     // Redraw dynamic ticker and feeds
     initTicker();
@@ -1169,105 +1224,141 @@ function translateUI() {
 // --- Events Setup ---
 function setupEventListeners() {
     // Theme Toggle
-    themeToggle.addEventListener("click", () => {
-        const current = document.documentElement.getAttribute("data-theme") || "light";
-        const next = current === "dark" ? "light" : "dark";
-        document.documentElement.setAttribute("data-theme", next);
-        localStorage.setItem("chronograph_theme", next);
-        updateThemeButtonText(next);
-        
-        const t = TRANSLATIONS[currentLanguage];
-        showToast(next === "dark" ? (currentLanguage === "km" ? "របៀបរាត្រីសកម្ម" : "NIGHT EDITION ACTIVE") : (currentLanguage === "km" ? "របៀបថ្ងៃសកម្ម" : "DAY EDITION ACTIVE"));
-    });
+    const themeBtn = document.getElementById("theme-toggle");
+    if (themeBtn) {
+        themeBtn.addEventListener("click", () => {
+            const current = document.documentElement.getAttribute("data-theme") || "light";
+            const next = current === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", next);
+            localStorage.setItem("chronograph_theme", next);
+            updateThemeButtonText(next);
+            
+            const t = TRANSLATIONS[currentLanguage];
+            showToast(next === "dark" ? (currentLanguage === "km" ? "របៀបរាត្រីសកម្ម" : "NIGHT EDITION ACTIVE") : (currentLanguage === "km" ? "របៀបថ្ងៃសកម្ម" : "DAY EDITION ACTIVE"));
+        });
+    }
 
     // Language Toggle
-    document.getElementById("language-toggle").addEventListener("click", () => {
-        currentLanguage = currentLanguage === "en" ? "km" : "en";
-        localStorage.setItem("chronograph_lang", currentLanguage);
-        translateUI();
-        initClock(); // Re-trigger clock to format in active language
-        
-        const isKm = currentLanguage === "km";
-        showToast(isKm ? "ភាសាត្រូវបានផ្លាស់ប្តូរទៅជា ភាសាខ្មែរ" : "Language switched to English");
-    });
+    const langBtn = document.getElementById("language-toggle");
+    if (langBtn) {
+        langBtn.addEventListener("click", () => {
+            currentLanguage = currentLanguage === "en" ? "km" : "en";
+            localStorage.setItem("chronograph_lang", currentLanguage);
+            translateUI();
+            initClock(); // Re-trigger clock to format in active language
+            
+            const isKm = currentLanguage === "km";
+            showToast(isKm ? "ភាសាត្រូវបានផ្លាស់ប្តូរទៅជា ភាសាខ្មែរ" : "Language switched to English");
+        });
+    }
 
     // Nav Category Clicks
-    navLinks.forEach(link => {
+    const links = document.querySelectorAll(".nav-link");
+    links.forEach(link => {
         link.addEventListener("click", (e) => {
             e.preventDefault();
-            navLinks.forEach(l => l.classList.remove("active"));
+            links.forEach(l => l.classList.remove("active"));
             link.classList.add("active");
 
             currentCategory = link.getAttribute("data-category");
             searchQuery = ""; // Reset search on category toggle
-            searchInput.value = "";
+            const searchInputEl = document.getElementById("search-input");
+            if (searchInputEl) searchInputEl.value = "";
             renderArticles();
         });
     });
 
     // Saved Articles Toggle Button
-    bookmarkToggleBtn.addEventListener("click", () => {
-        currentCategory = "saved";
-        renderArticles();
-        updateBookmarkUI();
-    });
+    const bookmarkBtn = document.getElementById("bookmark-toggle-btn");
+    if (bookmarkBtn) {
+        bookmarkBtn.addEventListener("click", () => {
+            currentCategory = "saved";
+            renderArticles();
+            updateBookmarkUI();
+        });
+    }
 
     // Search Operations
+    const searchBtnEl = document.getElementById("search-btn");
+    const searchInputEl = document.getElementById("search-input");
     const performSearch = () => {
-        searchQuery = searchInput.value.trim();
+        if (searchInputEl) searchQuery = searchInputEl.value.trim();
         renderArticles();
     };
-    searchBtn.addEventListener("click", performSearch);
-    searchInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") performSearch();
-    });
+    if (searchBtnEl) searchBtnEl.addEventListener("click", performSearch);
+    if (searchInputEl) {
+        searchInputEl.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") performSearch();
+        });
+    }
 
     // Weather manual update
-    weatherCityBtn.addEventListener("click", updateWeather);
-    weatherCityInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") updateWeather();
-    });
+    const weatherBtnEl = document.getElementById("weather-city-btn");
+    const weatherInputEl = document.getElementById("weather-city");
+    if (weatherBtnEl) weatherBtnEl.addEventListener("click", updateWeather);
+    if (weatherInputEl) {
+        weatherInputEl.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") updateWeather();
+        });
+    }
 
     // Modal close actions
-    modalClose.addEventListener("click", closeArticleModal);
-    articleModal.addEventListener("click", (e) => {
-        if (e.target === articleModal) closeArticleModal();
-    });
+    const modalCloseEl = document.getElementById("modal-close");
+    const articleModalEl = document.getElementById("article-modal");
+    if (modalCloseEl) modalCloseEl.addEventListener("click", closeArticleModal);
+    if (articleModalEl) {
+        articleModalEl.addEventListener("click", (e) => {
+            if (e.target === articleModalEl) closeArticleModal();
+        });
+    }
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") closeArticleModal();
     });
 
     // Modal Font adjustments
-    fontIncBtn.addEventListener("click", () => {
-        if (readerFontSizeMultiplier < 1.6) {
-            readerFontSizeMultiplier += 0.1;
-            applyFontSize();
-        }
-    });
-    fontDecBtn.addEventListener("click", () => {
-        if (readerFontSizeMultiplier > 0.8) {
-            readerFontSizeMultiplier -= 0.1;
-            applyFontSize();
-        }
-    });
+    const fontIncEl = document.getElementById("reader-font-inc");
+    const fontDecEl = document.getElementById("reader-font-dec");
+    if (fontIncEl) {
+        fontIncEl.addEventListener("click", () => {
+            if (readerFontSizeMultiplier < 1.6) {
+                readerFontSizeMultiplier += 0.1;
+                applyFontSize();
+            }
+        });
+    }
+    if (fontDecEl) {
+        fontDecEl.addEventListener("click", () => {
+            if (readerFontSizeMultiplier > 0.8) {
+                readerFontSizeMultiplier -= 0.1;
+                applyFontSize();
+            }
+        });
+    }
 
     // Newsletter submit + typewriter rubber stamp trigger
-    newsletterForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const email = newsletterEmail.value.trim();
-        const t = TRANSLATIONS[currentLanguage];
-        if (email) {
-            newsletterStatus.textContent = t.subscribing;
-            newsletterEmail.disabled = true;
-            newsletterForm.querySelector("button").disabled = true;
+    const newsletterFormEl = document.getElementById("newsletter-form");
+    const newsletterEmailEl = document.getElementById("newsletter-email");
+    const newsletterStatusEl = document.getElementById("newsletter-status");
+    const stampConfirmedEl = document.getElementById("stamp-confirmed");
+    if (newsletterFormEl) {
+        newsletterFormEl.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const email = newsletterEmailEl ? newsletterEmailEl.value.trim() : "";
+            const t = TRANSLATIONS[currentLanguage];
+            if (email && newsletterStatusEl) {
+                newsletterStatusEl.textContent = t.subscribing;
+                if (newsletterEmailEl) newsletterEmailEl.disabled = true;
+                const submitBtn = newsletterFormEl.querySelector("button");
+                if (submitBtn) submitBtn.disabled = true;
 
-            setTimeout(() => {
-                newsletterStatus.textContent = t.subscribedAt + email.toUpperCase();
-                stampConfirmed.classList.add("active");
-                showToast(t.subscribedToast);
-            }, 1500);
-        }
-    });
+                setTimeout(() => {
+                    if (newsletterStatusEl) newsletterStatusEl.textContent = t.subscribedAt + email.toUpperCase();
+                    if (stampConfirmedEl) stampConfirmedEl.classList.add("active");
+                    showToast(t.subscribedToast);
+                }, 1500);
+            }
+        });
+    }
 }
 
 // ==========================================
@@ -1446,128 +1537,6 @@ function listenToCloudData() {
     });
 }
 
-function initCustomData() {
-    const customArticles = JSON.parse(localStorage.getItem("anr_custom_articles")) || [];
-    
-    // Remove any previously merged custom articles from ARTICLES_DB
-    for (let i = ARTICLES_DB.length - 1; i >= 0; i--) {
-        if (ARTICLES_DB[i].id.startsWith("custom-")) {
-            ARTICLES_DB.splice(i, 1);
-        }
-    }
-    
-    // Merge new custom articles (place featured articles at top)
-    customArticles.forEach(art => {
-        if (art.featured) {
-            ARTICLES_DB.unshift(art);
-        } else {
-            ARTICLES_DB.push(art);
-        }
-    });
-
-    renderEditorialSettings();
-}
-
-// Render dynamic Masthead and Editorial info
-function renderEditorialSettings() {
-    const defaultSettings = {
-        title: "<span class='brand-color'>ANR</span> DAILY NEWS",
-        vol: "VOL. CXXIV NO. 42",
-        price: "PRICE: ONE BIT",
-        est: "EST. 1902",
-        weather: "LONDON 14°C"
-    };
-
-    const savedSettings = JSON.parse(localStorage.getItem("anr_editorial_settings")) || defaultSettings;
-    const isKm = currentLanguage === "km";
-
-    const mastheadTitleEl = document.getElementById("masthead-title-text");
-    const mastheadVolEl = document.getElementById("masthead-vol");
-    const mastheadPriceEl = document.getElementById("masthead-price");
-    const mastheadEstEl = document.getElementById("masthead-est");
-    const weatherWidgetEl = document.getElementById("weather-widget");
-
-    if (mastheadTitleEl && !isKm) mastheadTitleEl.innerHTML = savedSettings.title;
-    if (mastheadVolEl && !isKm) mastheadVolEl.textContent = savedSettings.vol;
-    if (mastheadPriceEl && !isKm) mastheadPriceEl.textContent = savedSettings.price;
-    if (mastheadEstEl && !isKm) mastheadEstEl.textContent = savedSettings.est;
-    if (weatherWidgetEl && !isKm && savedSettings.weather) {
-        weatherWidgetEl.innerHTML = `${savedSettings.weather} <span class="weather-icon">☁</span>`;
-    }
-}
-
-// Safely execute embedded <script> tags when inserting custom ad HTML
-function safeInjectHTML(container, htmlCode) {
-    if (!container) return;
-    container.innerHTML = htmlCode;
-    
-    const scripts = container.querySelectorAll("script");
-    scripts.forEach(oldScript => {
-        const newScript = document.createElement("script");
-        Array.from(oldScript.attributes).forEach(attr => {
-            newScript.setAttribute(attr.name, attr.value);
-        });
-        newScript.textContent = oldScript.textContent;
-        oldScript.parentNode.replaceChild(newScript, oldScript);
-    });
-}
-
-function renderCustomAds() {
-    const leftAdContainer = document.getElementById("left-ad-container");
-    const rightAdContainer = document.getElementById("right-ad-container");
-    
-    const savedAds = JSON.parse(localStorage.getItem("anr_custom_ads")) || { left: "", right: "" };
-    const t = TRANSLATIONS[currentLanguage];
-
-    // Left Ad
-    if (leftAdContainer) {
-        if (savedAds.left && savedAds.left.trim() !== "") {
-            safeInjectHTML(leftAdContainer, savedAds.left);
-        } else {
-            leftAdContainer.innerHTML = `
-                <div class="vintage-ad">
-                    <div class="ad-border">
-                        <p class="ad-title mono-text" id="ad-title-text">${t.adTitle}</p>
-                        <p class="ad-body" id="ad-body-text">${t.adBody}</p>
-                        <span class="ad-sub" id="ad-sub-text">${t.adSub}</span>
-                    </div>
-                </div>
-            `;
-        }
-    }
-
-    // Right Ad
-    if (rightAdContainer) {
-        if (savedAds.right && savedAds.right.trim() !== "") {
-            safeInjectHTML(rightAdContainer, savedAds.right);
-        } else {
-            rightAdContainer.innerHTML = "";
-        }
-    }
-}
-
-// Translation helper using MyMemory public API
-async function translateText(text, fromLang, toLang) {
-    if (!text || text.trim() === "") return "";
-    try {
-        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        if (data && data.responseData && data.responseData.translatedText) {
-            const decoded = document.createElement("textarea");
-            decoded.innerHTML = data.responseData.translatedText;
-            return decoded.value;
-        }
-        throw new Error("Invalid response format");
-    } catch (err) {
-        console.error("Translation error:", err);
-        return "";
-    }
-}
-
-let renderAdminPostsListGlobal = null;
-
-// ------------------------------------------
 function initCustomData() {
     const customArticles = JSON.parse(localStorage.getItem("anr_custom_articles")) || [];
     
