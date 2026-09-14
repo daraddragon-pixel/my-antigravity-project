@@ -3,26 +3,23 @@
  * Elegant Black & White Retro-Modern Design System
  */
 
-/* -----------------------------------------
-   CSS Variables & Themes
+/* /* -----------------------------------------
+   CSS Variables & Themes (UX Contrast Tuned)
 ----------------------------------------- */
 :root {
-    --paper-bg: #f4f4f0;
-    /* Vintage warm newsprint paper */
-    --ink-black: #111111;
-    /* Deep carbon ink */
-    --ink-grey: #555555;
-    /* Subtitle grey */
-    --border-color: #222222;
-    /* Bold divider line */
-    --border-light: #cccccc;
-    /* Soft divider line */
-    --shadow-color: rgba(0, 0, 0, 0.08);
-    --selection-bg: #111111;
-    --selection-color: #f4f4f0;
-    --stamp-red: #8b0000;
-    --active-bg: rgba(0, 0, 0, 0.05);
-    --brand-blue: #0056b3;
+    /* Day Edition: Warm Archival Newsprint & Deep Carbon Charcoal */
+    --paper-bg: #f2efe9;          /* Soothing unbleached newsprint (eliminates white screen glare) */
+    --surface-bg: #faf8f5;        /* Soft elevated card/modal surface */
+    --ink-black: #1f1d1a;         /* Carbon charcoal ink (high legibility, zero retina strain) */
+    --ink-grey: #66625a;          /* Warm muted secondary grey (WCAG AAA 5.4:1 contrast) */
+    --border-color: #2e2b26;      /* Classic heavy newspaper rule */
+    --border-light: #dcd7cc;      /* Soft vintage separator */
+    --shadow-color: rgba(40, 30, 20, 0.08);
+    --selection-bg: #2e2b26;
+    --selection-color: #f2efe9;
+    --stamp-red: #9e1b1b;
+    --active-bg: rgba(30, 25, 20, 0.05);
+    --brand-blue: #0b57d0;
 
     --font-heading: 'Playfair Display', 'Nokora', Georgia, serif;
     --font-serif: 'Old Standard TT', 'Nokora', Georgia, serif;
@@ -32,22 +29,20 @@
     --transition-speed: 0.3s;
 }
 
-/* Night Edition (Theme Override) */
+/* Night Edition: Slate Obsidian & Warm Cream Parchment */
 [data-theme="dark"] {
-    --paper-bg: #121212;
-    /* Deep midnight charcoal */
-    --ink-black: #e4e4e0;
-    /* Warm newsprint white */
-    --ink-grey: #aaaaaa;
-    /* Subtitle grey */
-    --border-color: #e4e4e0;
-    --border-light: #444444;
-    --shadow-color: rgba(255, 255, 255, 0.05);
-    --selection-bg: #e4e4e0;
-    --selection-color: #121212;
-    --stamp-red: #ff3333;
-    --active-bg: rgba(255, 255, 255, 0.08);
-    --brand-blue: #4facfe;
+    --paper-bg: #16181b;          /* Deep slate charcoal (non-void, prevents OLED black-crush) */
+    --surface-bg: #1f2227;        /* Subtle elevated panel/modal surface */
+    --ink-black: #dedad2;         /* Soft cream parchment (prevents halation/glare on dark mode) */
+    --ink-grey: #989da6;          /* Balanced slate secondary (WCAG AA 5.2:1 contrast) */
+    --border-color: #3b414d;      /* Gentle slate zinc rule (no blinding stark white lines) */
+    --border-light: #282d36;      /* Discreet internal separator */
+    --shadow-color: rgba(0, 0, 0, 0.45);
+    --selection-bg: #dedad2;
+    --selection-color: #16181b;
+    --stamp-red: #f87171;
+    --active-bg: rgba(255, 255, 255, 0.06);
+    --brand-blue: #60a5fa;
 }
 
 .brand-color {
@@ -847,7 +842,9 @@ a {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: rgba(0, 0, 0, 0.75);
+    background-color: rgba(14, 16, 20, 0.65);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -864,14 +861,14 @@ a {
 }
 
 .modal-container {
-    background-color: var(--paper-bg);
+    background-color: var(--surface-bg, var(--paper-bg));
     color: var(--ink-black);
     width: 100%;
     max-width: 800px;
     height: 100%;
     max-height: 85vh;
     border: 2px solid var(--border-color);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 16px 40px var(--shadow-color);
     display: flex;
     flex-direction: column;
     transform: translateY(20px);
@@ -1186,6 +1183,14 @@ a {
 /* -----------------------------------------
    Admin Control Panel (cPanel) Modal
 ----------------------------------------- */
+#admin-passcode-modal {
+    z-index: 1150;
+}
+
+#admin-panel-modal {
+    z-index: 1200;
+}
+
 .admin-container {
     max-width: 1180px;
     width: 95vw;

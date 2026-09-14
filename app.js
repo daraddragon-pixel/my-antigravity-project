@@ -1568,7 +1568,8 @@ async function translateText(text, fromLang, toLang) {
 let renderAdminPostsListGlobal = null;
 
 // ------------------------------------------
-// cPanel Main Initialization
+// ------------------------------------------
+// cPanel Main Initialization (Fully Hoisted & Fail-Safe)
 // ------------------------------------------
 function initAdminPanel() {
     const adminModal = document.getElementById("admin-panel-modal");
@@ -1576,6 +1577,9 @@ function initAdminPanel() {
     const passcodeForm = document.getElementById("admin-passcode-form");
     const passcodeInput = document.getElementById("admin-passcode-input");
     const passcodeCancel = document.getElementById("admin-passcode-cancel");
+    const headerCpanelBtn = document.getElementById("cpanel-header-btn");
+    const adminModalCloseBtn = document.getElementById("admin-modal-close-btn");
+    const signOutBtn = document.getElementById("admin-signout-btn");
     
     const tabButtons = Array.from(document.querySelectorAll(".admin-tab-btn"));
     const tabContents = Array.from(document.querySelectorAll(".admin-tab-content"));
@@ -1662,12 +1666,101 @@ function initAdminPanel() {
 
     if (!adminModal || !passcodeModal) return;
 
-    // Helper: Get Current Passcode
-    const getMasterPasscode = () => localStorage.getItem("anr_admin_passcode") || "ANRNews2026";
+    // Helper: Passcode
+    function getMasterPasscode() {
+        return localStorage.getItem("anr_admin_passcode") || "ANRNews2026";
+    }
+
+    // Modal Control Functions
+    function triggerAdminAccess() {
+        if (sessionStorage.getItem("anr_admin_authorized") === "true") {
+            openAdminPanel();
+        } else {
+            if (passcodeModal) {
+                passcodeModal.classList.add("active");
+                passcodeModal.setAttribute("aria-hidden", "false");
+                if (passcodeInput) {
+                    passcodeInput.value = "";
+                    passcodeInput.focus();
+                }
+            }
+        }
+    }
+
+    function openAdminPanel() {
+        if (passcodeModal) {
+            passcodeModal.classList.remove("active");
+            passcodeModal.setAttribute("aria-hidden", "true");
+        }
+        if (adminModal) {
+            adminModal.classList.add("active");
+            adminModal.setAttribute("aria-hidden", "false");
+        }
+        try { renderAdminPostsList(); } catch(e) { console.error("renderAdminPostsList error:", e); }
+        try { loadEditorialInputs(); } catch(e) { console.error("loadEditorialInputs error:", e); }
+        try { renderBulletinsManager(); } catch(e) { console.error("renderBulletinsManager error:", e); }
+        try { loadAdsInputs(); } catch(e) { console.error("loadAdsInputs error:", e); }
+        try { renderMediaPresets(); } catch(e) { console.error("renderMediaPresets error:", e); }
+        try { initFirebaseCloud(); } catch(e) { console.error("initFirebaseCloud error:", e); }
+    }
+
+    function closeAdminPanel() {
+        if (adminModal) {
+            adminModal.classList.remove("active");
+            adminModal.setAttribute("aria-hidden", "true");
+        }
+    }
+
+    function signOutAdminPanel() {
+        closeAdminPanel();
+        sessionStorage.removeItem("anr_admin_authorized");
+        showToast("SIGNED OUT OF CPANEL");
+    }
+
+    // W3C Accessible Tab Switcher
+    function switchTab(targetTabId) {
+        tabButtons.forEach(btn => {
+            const isTarget = btn.getAttribute("data-tab") === targetTabId;
+            btn.classList.toggle("active", isTarget);
+            btn.setAttribute("aria-selected", isTarget ? "true" : "false");
+            btn.setAttribute("tabindex", isTarget ? "0" : "-1");
+        });
+
+        tabContents.forEach(content => {
+            const isTarget = content.id === targetTabId;
+            content.classList.toggle("active", isTarget);
+        });
+
+        if (targetTabId === "tab-backup") {
+            exportBackupToTextarea();
+        }
+    }
 
     // ------------------------------------------
-    // 1. Secret Trigger Listening & Shortcuts
+    // 1. Triggers & Bindings
     // ------------------------------------------
+    if (headerCpanelBtn) {
+        headerCpanelBtn.onclick = () => triggerAdminAccess();
+    }
+    if (adminModalCloseBtn) {
+        adminModalCloseBtn.onclick = () => closeAdminPanel();
+    }
+    if (signOutBtn) {
+        signOutBtn.onclick = () => signOutAdminPanel();
+    }
+
+    // Backdrop Click handlers
+    adminModal.addEventListener("click", (e) => {
+        if (e.target === adminModal) closeAdminPanel();
+    });
+    passcodeModal.addEventListener("click", (e) => {
+        if (e.target === passcodeModal) {
+            passcodeModal.classList.remove("active");
+            passcodeModal.setAttribute("aria-hidden", "true");
+        }
+    });
+
+    // Keyboard Shortcuts & Secret Types
     let typedBuffer = "";
     document.addEventListener("keydown", (e) => {
         if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") {
@@ -1687,6 +1780,16 @@ function initAdminPanel() {
             e.preventDefault();
             triggerAdminAccess();
         }
+
+        if (e.key === "Escape") {
+            if (passcodeModal && passcodeModal.classList.contains("active")) {
+                passcodeModal.classList.remove("active");
+                passcodeModal.setAttribute("aria-hidden", "true");
+            }
+            if (adminModal && adminModal.classList.contains("active")) {
+                closeAdminPanel();
+            }
+        }
     });
 
     const checkUrlHashAccess = () => {
@@ -1695,99 +1798,39 @@ function initAdminPanel() {
             triggerAdminAccess();
         }
     };
-
     window.addEventListener("hashchange", checkUrlHashAccess);
     checkUrlHashAccess();
 
-    const triggerAdminAccess = () => {
-        if (sessionStorage.getItem("anr_admin_authorized") === "true") {
-            openAdminPanel();
-        } else {
-            passcodeModal.classList.add("active");
-            passcodeModal.setAttribute("aria-hidden", "false");
-            passcodeInput.value = "";
-            passcodeInput.focus();
-        }
-    };
+    // Passcode Form Submit
+    if (passcodeForm) {
+        passcodeForm.onsubmit = (e) => {
+            e.preventDefault();
+            if (passcodeInput && passcodeInput.value === getMasterPasscode()) {
+                sessionStorage.setItem("anr_admin_authorized", "true");
+                openAdminPanel();
+                showToast("AUTHORIZATION CONFIRMED");
+            } else {
+                showToast("AUTHORIZATION DENIED: INVALID KEY");
+                if (passcodeInput) {
+                    passcodeInput.value = "";
+                    passcodeInput.focus();
+                }
+            }
+        };
+    }
 
-    const openAdminPanel = () => {
-        adminModal.classList.add("active");
-        adminModal.setAttribute("aria-hidden", "false");
-        renderAdminPostsList();
-        loadEditorialInputs();
-        renderBulletinsManager();
-        loadAdsInputs();
-        renderMediaPresets();
-        initFirebaseCloud();
-    };
-
-    // Passcode confirmation submission
-    passcodeForm.onsubmit = (e) => {
-        e.preventDefault();
-        if (passcodeInput.value === getMasterPasscode()) {
-            sessionStorage.setItem("anr_admin_authorized", "true");
+    if (passcodeCancel) {
+        passcodeCancel.onclick = () => {
             passcodeModal.classList.remove("active");
             passcodeModal.setAttribute("aria-hidden", "true");
-            openAdminPanel();
-            showToast("AUTHORIZATION CONFIRMED");
-        } else {
-            showToast("AUTHORIZATION DENIED: INVALID KEY");
-            passcodeInput.value = "";
-            passcodeInput.focus();
-        }
-    };
+            if (passcodeInput) passcodeInput.value = "";
+        };
+    }
 
-    passcodeCancel.onclick = () => {
-        passcodeModal.classList.remove("active");
-        passcodeModal.setAttribute("aria-hidden", "true");
-        passcodeInput.value = "";
-    };
-
-    // SIGN OUT Button
-    const signOutBtn = document.getElementById("admin-signout-btn");
-    const closeAdminPanel = () => {
-        adminModal.classList.remove("active");
-        adminModal.setAttribute("aria-hidden", "true");
-        sessionStorage.removeItem("anr_admin_authorized");
-        showToast("SIGNED OUT OF CPANEL");
-    };
-    if (signOutBtn) signOutBtn.onclick = closeAdminPanel;
-
-    // Escape Key Handler
-    document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
-            if (passcodeModal.classList.contains("active")) {
-                passcodeModal.classList.remove("active");
-                passcodeModal.setAttribute("aria-hidden", "true");
-            }
-        }
-    });
-
-    // ------------------------------------------
-    // 2. W3C WAI-ARIA Accessible Tab Switching
-    // ------------------------------------------
-    const switchTab = (targetTabId) => {
-        tabButtons.forEach(btn => {
-            const isTarget = btn.getAttribute("data-tab") === targetTabId;
-            btn.classList.toggle("active", isTarget);
-            btn.setAttribute("aria-selected", isTarget ? "true" : "false");
-            btn.setAttribute("tabindex", isTarget ? "0" : "-1");
-        });
-
-        tabContents.forEach(content => {
-            const isTarget = content.id === targetTabId;
-            content.classList.toggle("active", isTarget);
-        });
-
-        if (targetTabId === "tab-backup") {
-            exportBackupToTextarea();
-        }
-    };
-
+    // Tab Buttons Event Listeners
     tabButtons.forEach((btn, index) => {
         btn.onclick = () => switchTab(btn.getAttribute("data-tab"));
 
-        // Keyboard Arrow Navigation (W3C Pattern)
         btn.onkeydown = (e) => {
             let nextIndex = null;
             if (e.key === "ArrowRight") {
@@ -1805,8 +1848,32 @@ function initAdminPanel() {
     });
 
     // ------------------------------------------
-    // 3. Tab 1: Post Editor, Live Preview & Formatting Toolbar
+    // 2. Tab 1: Post Editor & Live Preview
     // ------------------------------------------
+    function updateLivePreview() {
+        if (!previewContent) return;
+        const mode = langModeSelect ? langModeSelect.value : "bilingual";
+        const isKm = (mode === "km");
+        const title = isKm ? (titleKmInput ? titleKmInput.value : "") : (titleEnInput ? titleEnInput.value : "");
+        const sub = isKm ? (subtitleKmInput ? subtitleKmInput.value : "") : (subtitleEnInput ? subtitleEnInput.value : "");
+        const content = isKm ? (contentKmInput ? contentKmInput.value : "") : (contentEnInput ? contentEnInput.value : "");
+        const author = authorInput ? (authorInput.value.toUpperCase() || "STAFF") : "STAFF";
+        const cat = categorySelect ? categorySelect.value.toUpperCase() : "NEWS";
+
+        previewContent.innerHTML = `
+            <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-grey); margin-bottom: 0.3rem;">
+                ${cat} &bull; BY ${author} &bull; [PREVIEW]
+            </div>
+            <h3 style="font-family: var(--font-heading); font-size: 1.25rem; line-height: 1.2; margin-bottom: 0.3rem;">
+                ${title || "Headline Will Appear Here"}
+            </h3>
+            ${sub ? `<p style="font-style: italic; font-size: 0.9rem; opacity: 0.8; margin-bottom: 0.5rem;">${sub}</p>` : ""}
+            <div style="font-size: 0.88rem; line-height: 1.5;">
+                ${content || "<p style='opacity:0.6;'>Article body content...</p>"}
+            </div>
+        `;
+    }
+
     let lastActiveTextarea = contentEnInput;
     [titleEnInput, subtitleEnInput, previewEnInput, contentEnInput, titleKmInput, subtitleKmInput, previewKmInput, contentKmInput].forEach(field => {
         if (field) {
@@ -1814,17 +1881,17 @@ function initAdminPanel() {
                 if (field.tagName === "TEXTAREA") lastActiveTextarea = field;
             });
             field.addEventListener("input", () => {
-                if (previewBox.style.display !== "none") updateLivePreview();
+                if (previewBox && previewBox.style.display !== "none") updateLivePreview();
             });
         }
     });
 
-    // Formatting Toolbar Buttons
     const toolbarButtons = document.querySelectorAll(".editor-toolbar .toolbar-btn");
     toolbarButtons.forEach(btn => {
         btn.onclick = () => {
             const tag = btn.getAttribute("data-tag");
             const textarea = lastActiveTextarea || contentEnInput;
+            if (!textarea) return;
             const start = textarea.selectionStart;
             const end = textarea.selectionEnd;
             const selectedText = textarea.value.substring(start, end);
@@ -1832,50 +1899,34 @@ function initAdminPanel() {
 
             switch (tag) {
                 case "bold":
-                    insertion = `<strong>${selectedText || "bold text"}</strong>`;
+                    insertion = `<b>${selectedText || "Bold Text"}</b>`;
                     break;
                 case "italic":
-                    insertion = `<em>${selectedText || "italic text"}</em>`;
+                    insertion = `<i>${selectedText || "Italic Text"}</i>`;
                     break;
                 case "dropcap":
-                    insertion = `<span class="drop-cap">${selectedText || "T"}</span>`;
+                    insertion = `<span class="dropcap">${selectedText || "T"}</span>`;
                     break;
                 case "quote":
-                    insertion = `<blockquote>${selectedText || "Enter quote citation here..."}</blockquote>`;
+                    insertion = `<blockquote>${selectedText || "Quoted dispatch text..."}</blockquote>`;
                     break;
                 case "p":
-                    insertion = `<p>${selectedText || "Paragraph content..."}</p>`;
+                    insertion = `<p>${selectedText || "New paragraph..."}</p>`;
                     break;
                 case "h3":
-                    insertion = `<h3>${selectedText || "Subheading Title"}</h3>`;
+                    insertion = `<h3>${selectedText || "Section Heading"}</h3>`;
                     break;
+                default:
+                    insertion = selectedText;
             }
 
-            textarea.setRangeText(insertion, start, end, "end");
+            textarea.setRangeText(insertion, start, end, "select");
             textarea.focus();
-            if (previewBox.style.display !== "none") updateLivePreview();
+            if (previewBox && previewBox.style.display !== "none") updateLivePreview();
         };
     });
 
-    // Live Preview Rendering
-    const updateLivePreview = () => {
-        const title = titleEnInput.value || titleKmInput.value || "Untitled Dispatch";
-        const subtitle = subtitleEnInput.value || subtitleKmInput.value || "";
-        const author = authorInput.value || "ALEXIS VANCE";
-        const category = (categorySelect.value || "NEWS").toUpperCase();
-        const content = contentEnInput.value || contentKmInput.value || "<p>Article content will appear here...</p>";
-        const image = imageInput.value ? `<div class="modal-img-wrap" style="margin-bottom:0.8rem;"><img src="${imageInput.value}" alt="Preview" style="max-width:100%; border:1px solid var(--border-color);"></div>` : "";
-
-        previewContent.innerHTML = `
-            <div class="preview-meta">${category} &bull; BY ${author} &bull; ${new Date().toLocaleDateString()}</div>
-            <h3>${title}</h3>
-            ${subtitle ? `<h4 style="font-family:var(--font-heading); font-style:italic; font-size:1rem; opacity:0.85; margin-bottom:0.6rem;">${subtitle}</h4>` : ""}
-            ${image}
-            <div style="font-family:var(--font-body); font-size:0.9rem; line-height:1.5;">${content}</div>
-        `;
-    };
-
-    if (previewToggleBtn) {
+    if (previewToggleBtn && previewBox) {
         previewToggleBtn.onclick = () => {
             const isHidden = previewBox.style.display === "none";
             previewBox.style.display = isHidden ? "block" : "none";
@@ -1888,15 +1939,14 @@ function initAdminPanel() {
         };
     }
 
-    if (previewCloseBtn) {
+    if (previewCloseBtn && previewBox) {
         previewCloseBtn.onclick = () => {
             previewBox.style.display = "none";
             if (previewToggleBtn) previewToggleBtn.textContent = "👁️ LIVE PREVIEW";
         };
     }
 
-    // Language Mode Selector
-    const applyLangMode = (mode) => {
+    function applyLangMode(mode) {
         if (!colEn || !colKm) return;
         if (mode === "km") {
             colKm.style.display = "";
@@ -1908,26 +1958,26 @@ function initAdminPanel() {
             colEn.style.display = "";
             colKm.style.display = "";
         }
-    };
+    }
 
     if (langModeSelect) {
         langModeSelect.onchange = () => applyLangMode(langModeSelect.value);
         applyLangMode(langModeSelect.value);
     }
 
-    // Form Reset
-    formResetBtn.onclick = () => {
-        postForm.reset();
-        postIdInput.value = "";
-        if (langModeSelect) {
-            langModeSelect.value = "bilingual";
-            applyLangMode("bilingual");
-        }
-        if (featuredCheckbox) featuredCheckbox.checked = false;
-        if (previewBox.style.display !== "none") updateLivePreview();
-    };
+    if (formResetBtn && postForm) {
+        formResetBtn.onclick = () => {
+            postForm.reset();
+            if (postIdInput) postIdInput.value = "";
+            if (langModeSelect) {
+                langModeSelect.value = "bilingual";
+                applyLangMode("bilingual");
+            }
+            if (featuredCheckbox) featuredCheckbox.checked = false;
+            if (previewBox && previewBox.style.display !== "none") updateLivePreview();
+        };
+    }
 
-    // Auto-Translate Form Fields
     if (translateBtn) {
         translateBtn.onclick = async () => {
             const mode = langModeSelect ? langModeSelect.value : "bilingual";
@@ -1942,10 +1992,10 @@ function initAdminPanel() {
             const tgtPreviewInput = (mode === "en") ? previewKmInput : previewEnInput;
             const tgtContentInput = (mode === "en") ? contentKmInput : contentEnInput;
 
-            const titleSrc = srcTitleInput.value.trim();
-            const subtitleSrc = srcSubtitleInput.value.trim();
-            const previewSrc = srcPreviewInput.value.trim();
-            const contentSrc = srcContentInput.value.trim();
+            const titleSrc = srcTitleInput ? srcTitleInput.value.trim() : "";
+            const subtitleSrc = srcSubtitleInput ? srcSubtitleInput.value.trim() : "";
+            const previewSrc = srcPreviewInput ? srcPreviewInput.value.trim() : "";
+            const contentSrc = srcContentInput ? srcContentInput.value.trim() : "";
 
             if (!titleSrc && !previewSrc && !contentSrc) {
                 alert("Please enter some text in the source language fields first.");
@@ -1964,13 +2014,13 @@ function initAdminPanel() {
                     translateText(contentSrc, srcLang, tgtLang)
                 ]);
 
-                if (titleTrans) tgtTitleInput.value = titleTrans;
-                if (subtitleTrans) tgtSubtitleInput.value = subtitleTrans;
-                if (previewTrans) tgtPreviewInput.value = previewTrans;
-                if (contentTrans) tgtContentInput.value = contentTrans;
+                if (titleTrans && tgtTitleInput) tgtTitleInput.value = titleTrans;
+                if (subtitleTrans && tgtSubtitleInput) tgtSubtitleInput.value = subtitleTrans;
+                if (previewTrans && tgtPreviewInput) tgtPreviewInput.value = previewTrans;
+                if (contentTrans && tgtContentInput) tgtContentInput.value = contentTrans;
 
                 showToast("AUTO-TRANSLATION COMPLETE");
-                if (previewBox.style.display !== "none") updateLivePreview();
+                if (previewBox && previewBox.style.display !== "none") updateLivePreview();
             } catch (err) {
                 console.error("Auto-translation failed:", err);
                 alert("Translation lookup failed. Please verify your connection and try again.");
@@ -1982,9 +2032,9 @@ function initAdminPanel() {
     }
 
     // ------------------------------------------
-    // 4. Archived Dispatches List, Search & Filtering
+    // 3. Tab 1: Archived Dispatches List
     // ------------------------------------------
-    const renderAdminPostsList = () => {
+    function renderAdminPostsList() {
         if (!postsListContainer) return;
         postsListContainer.innerHTML = "";
         
@@ -2011,16 +2061,16 @@ function initAdminPanel() {
         }
 
         filteredArticles.forEach(art => {
-            const isCustom = art.id.startsWith("custom-");
+            const isCustom = art.id && art.id.startsWith("custom-");
             const metaStr = `${art.category.toUpperCase()} &bull; BY ${art.author}`;
-            const contentLang = art[currentLanguage] || art.en;
+            const contentLang = (currentLanguage && art[currentLanguage]) ? art[currentLanguage] : (art.en || art.km || {});
             const isFeatured = art.featured ? '<span style="color:#d4af37;">★ LEAD</span>' : '';
             
             const item = document.createElement("div");
             item.className = "admin-post-item";
             item.innerHTML = `
                 <div class="admin-post-item-info">
-                    <h4 class="admin-post-item-title">${contentLang.title}</h4>
+                    <h4 class="admin-post-item-title">${contentLang.title || "Untitled Dispatch"}</h4>
                     <span class="admin-post-item-meta">${metaStr} ${isCustom ? '<span style="color:#0056b3;">[USER]</span>' : '[SYSTEM]'} ${isFeatured}</span>
                 </div>
                 <div class="admin-post-item-actions">
@@ -2029,33 +2079,31 @@ function initAdminPanel() {
                 </div>
             `;
             
-            // Edit Handler
             item.querySelector(".edit").onclick = () => {
-                postIdInput.value = art.id;
-                categorySelect.value = art.category;
-                authorInput.value = art.author;
-                imageInput.value = art.image || "";
+                if (postIdInput) postIdInput.value = art.id;
+                if (categorySelect) categorySelect.value = art.category;
+                if (authorInput) authorInput.value = art.author;
+                if (imageInput) imageInput.value = art.image || "";
                 if (featuredCheckbox) featuredCheckbox.checked = !!art.featured;
                 
-                titleEnInput.value = art.en ? art.en.title : "";
-                subtitleEnInput.value = art.en ? (art.en.subTitle || "") : "";
-                previewEnInput.value = art.en ? art.en.preview : "";
-                contentEnInput.value = art.en ? art.en.content : "";
+                if (titleEnInput) titleEnInput.value = art.en ? art.en.title : "";
+                if (subtitleEnInput) subtitleEnInput.value = art.en ? (art.en.subTitle || "") : "";
+                if (previewEnInput) previewEnInput.value = art.en ? art.en.preview : "";
+                if (contentEnInput) contentEnInput.value = art.en ? art.en.content : "";
                 
-                titleKmInput.value = art.km ? art.km.title : "";
-                subtitleKmInput.value = art.km ? (art.km.subTitle || "") : "";
-                previewKmInput.value = art.km ? art.km.preview : "";
-                contentKmInput.value = art.km ? art.km.content : "";
+                if (titleKmInput) titleKmInput.value = art.km ? art.km.title : "";
+                if (subtitleKmInput) subtitleKmInput.value = art.km ? (art.km.subTitle || "") : "";
+                if (previewKmInput) previewKmInput.value = art.km ? art.km.preview : "";
+                if (contentKmInput) contentKmInput.value = art.km ? art.km.content : "";
 
-                postForm.scrollTop = 0;
+                if (postForm) postForm.scrollTop = 0;
                 showToast("ARTICLE LOADED TO EDITOR");
-                if (previewBox.style.display !== "none") updateLivePreview();
+                if (previewBox && previewBox.style.display !== "none") updateLivePreview();
             };
             
-            // Delete Handler
             if (isCustom) {
                 item.querySelector(".delete").onclick = () => {
-                    if (confirm(`Are you sure you want to delete dispatch "${contentLang.title}"?`)) {
+                    if (confirm(`Are you sure you want to delete dispatch "${contentLang.title || 'this article'}"?`)) {
                         deleteCustomArticle(art.id);
                     }
                 };
@@ -2063,7 +2111,7 @@ function initAdminPanel() {
             
             postsListContainer.appendChild(item);
         });
-    };
+    }
 
     renderAdminPostsListGlobal = renderAdminPostsList;
 
@@ -2080,12 +2128,11 @@ function initAdminPanel() {
         };
     });
 
-    const deleteCustomArticle = (id) => {
+    function deleteCustomArticle(id) {
         let customArticles = JSON.parse(localStorage.getItem("anr_custom_articles")) || [];
         customArticles = customArticles.filter(art => art.id !== id);
         localStorage.setItem("anr_custom_articles", JSON.stringify(customArticles));
         
-        // Delete from Firebase Cloud if connected
         if (isFirebaseConnected && firestoreDb) {
             firestoreDb.collection("dispatches").doc(id).delete().catch(err => console.error("Cloud delete error:", err));
         }
@@ -2094,100 +2141,100 @@ function initAdminPanel() {
         renderArticles();
         renderAdminPostsList();
         showToast("ARTICLE DELETED");
-    };
+    }
 
-    // Save/Publish Article Form Submit
-    postForm.onsubmit = (e) => {
-        e.preventDefault();
-        
-        const existingId = postIdInput.value;
-        const id = existingId || "custom-" + Date.now();
-        const category = categorySelect.value;
-        const author = authorInput.value.trim().toUpperCase();
-        const image = imageInput.value.trim();
-        const mode = langModeSelect ? langModeSelect.value : "bilingual";
-        const isFeatured = featuredCheckbox ? featuredCheckbox.checked : false;
-        
-        if (mode === "km") {
-            titleEnInput.value = titleKmInput.value;
-            subtitleEnInput.value = subtitleKmInput.value;
-            previewEnInput.value = previewKmInput.value;
-            contentEnInput.value = contentKmInput.value;
-        } else if (mode === "en") {
-            titleKmInput.value = titleEnInput.value;
-            subtitleKmInput.value = subtitleEnInput.value;
-            previewKmInput.value = previewEnInput.value;
-            contentKmInput.value = contentEnInput.value;
-        }
-
-        const cleanContentEn = contentEnInput.value.replace(/<[^>]*>/g, "");
-        const wordCountVal = cleanContentEn.split(/\s+/).filter(Boolean).length;
-        const readTimeVal = Math.max(1, Math.round(wordCountVal / 200));
-
-        const newArticle = {
-            id,
-            category,
-            author,
-            featured: isFeatured,
-            date: new Date().toLocaleDateString("en-US", { month: "long", day: "2-digit", year: "numeric" }).toUpperCase(),
-            dateKm: new Date().toLocaleDateString("km-KH", { month: "long", day: "2-digit", year: "numeric" }),
-            wordCount: `${wordCountVal} WORDS`,
-            wordCountKm: `${wordCountVal} ពាក្យ`,
-            readTime: `${readTimeVal} MIN READ`,
-            readTimeKm: `${readTimeVal} នាទីអាន`,
-            image: image || null,
-            en: {
-                title: titleEnInput.value.trim(),
-                subTitle: subtitleEnInput.value.trim(),
-                preview: previewEnInput.value.trim(),
-                content: contentEnInput.value.trim()
-            },
-            km: {
-                title: titleKmInput.value.trim(),
-                subTitle: subtitleKmInput.value.trim(),
-                preview: previewKmInput.value.trim(),
-                content: contentKmInput.value.trim()
+    // Save/Publish Article Form
+    if (postForm) {
+        postForm.onsubmit = (e) => {
+            e.preventDefault();
+            
+            const existingId = postIdInput ? postIdInput.value : "";
+            const id = existingId || "custom-" + Date.now();
+            const category = categorySelect ? categorySelect.value : "technology";
+            const author = authorInput ? authorInput.value.trim().toUpperCase() : "EDITORIAL DESK";
+            const image = imageInput ? imageInput.value.trim() : "";
+            const mode = langModeSelect ? langModeSelect.value : "bilingual";
+            const isFeatured = featuredCheckbox ? featuredCheckbox.checked : false;
+            
+            if (mode === "km" && titleKmInput && titleEnInput) {
+                titleEnInput.value = titleKmInput.value;
+                if (subtitleEnInput && subtitleKmInput) subtitleEnInput.value = subtitleKmInput.value;
+                if (previewEnInput && previewKmInput) previewEnInput.value = previewKmInput.value;
+                if (contentEnInput && contentKmInput) contentEnInput.value = contentKmInput.value;
+            } else if (mode === "en" && titleEnInput && titleKmInput) {
+                titleKmInput.value = titleEnInput.value;
+                if (subtitleKmInput && subtitleEnInput) subtitleKmInput.value = subtitleEnInput.value;
+                if (previewKmInput && previewEnInput) previewKmInput.value = previewEnInput.value;
+                if (contentKmInput && contentEnInput) contentKmInput.value = contentEnInput.value;
             }
-        };
 
-        let customArticles = JSON.parse(localStorage.getItem("anr_custom_articles")) || [];
-        
-        if (existingId) {
-            const idx = customArticles.findIndex(art => art.id === existingId);
-            if (idx > -1) {
-                customArticles[idx] = newArticle;
+            const cleanContentEn = contentEnInput ? contentEnInput.value.replace(/<[^>]*>/g, "") : "";
+            const wordCountVal = cleanContentEn.split(/\s+/).filter(Boolean).length;
+            const readTimeVal = Math.max(1, Math.round(wordCountVal / 200));
+
+            const newArticle = {
+                id,
+                category,
+                author,
+                featured: isFeatured,
+                date: new Date().toLocaleDateString("en-US", { month: "long", day: "2-digit", year: "numeric" }).toUpperCase(),
+                dateKm: new Date().toLocaleDateString("km-KH", { month: "long", day: "2-digit", year: "numeric" }),
+                wordCount: `${wordCountVal} WORDS`,
+                wordCountKm: `${wordCountVal} ពាក្យ`,
+                readTime: `${readTimeVal} MIN READ`,
+                readTimeKm: `${readTimeVal} នាទីអាន`,
+                image: image || null,
+                en: {
+                    title: titleEnInput ? titleEnInput.value.trim() : "",
+                    subTitle: subtitleEnInput ? subtitleEnInput.value.trim() : "",
+                    preview: previewEnInput ? previewEnInput.value.trim() : "",
+                    content: contentEnInput ? contentEnInput.value.trim() : ""
+                },
+                km: {
+                    title: titleKmInput ? titleKmInput.value.trim() : "",
+                    subTitle: subtitleKmInput ? subtitleKmInput.value.trim() : "",
+                    preview: previewKmInput ? previewKmInput.value.trim() : "",
+                    content: contentKmInput ? contentKmInput.value.trim() : ""
+                }
+            };
+
+            let customArticles = JSON.parse(localStorage.getItem("anr_custom_articles")) || [];
+            const existingIdx = customArticles.findIndex(art => art.id === id);
+            
+            if (existingIdx !== -1) {
+                customArticles[existingIdx] = newArticle;
+                showToast("ARTICLE MODIFICATIONS SAVED");
+            } else if (id.startsWith("custom-")) {
+                customArticles.push(newArticle);
+                showToast("NEW DISPATCH ENGRAVED & PUBLISHED");
             } else {
                 customArticles.push(newArticle);
+                showToast("ARTICLE OVERRIDE SAVED");
             }
-            showToast("ARTICLE MODIFICATIONS SAVED");
-        } else {
-            customArticles.push(newArticle);
-            showToast("NEW DISPATCH ENGRAVED & PUBLISHED");
-        }
 
-        localStorage.setItem("anr_custom_articles", JSON.stringify(customArticles));
-        
-        // Save to Firebase Cloud Firestore if connected
-        if (isFirebaseConnected && firestoreDb) {
-            firestoreDb.collection("dispatches").doc(id).set(newArticle)
-                .then(() => showToast("DISPATCH SYNCED TO FIREBASE CLOUD"))
-                .catch(err => console.error("Firebase save error:", err));
-        }
+            localStorage.setItem("anr_custom_articles", JSON.stringify(customArticles));
+            
+            if (isFirebaseConnected && firestoreDb) {
+                firestoreDb.collection("dispatches").doc(id).set(newArticle)
+                    .then(() => showToast("DISPATCH SYNCED TO FIREBASE CLOUD"))
+                    .catch(err => console.error("Firebase save error:", err));
+            }
 
-        initCustomData();
-        renderArticles();
-        renderAdminPostsList();
-        
-        postForm.reset();
-        postIdInput.value = "";
-        if (featuredCheckbox) featuredCheckbox.checked = false;
-        if (previewBox.style.display !== "none") updateLivePreview();
-    };
+            initCustomData();
+            renderArticles();
+            renderAdminPostsList();
+            
+            postForm.reset();
+            if (postIdInput) postIdInput.value = "";
+            if (featuredCheckbox) featuredCheckbox.checked = false;
+            if (previewBox && previewBox.style.display !== "none") updateLivePreview();
+        };
+    }
 
     // ------------------------------------------
-    // 5. Tab 2: Editorial & Ticker Settings
+    // 4. Tab 2: Editorial & Ticker Settings
     // ------------------------------------------
-    const loadEditorialInputs = () => {
+    function loadEditorialInputs() {
         const savedSettings = JSON.parse(localStorage.getItem("anr_editorial_settings")) || {
             title: "ANR DAILY NEWS",
             vol: "VOL. CXXIV NO. 42",
@@ -2196,26 +2243,25 @@ function initAdminPanel() {
             weather: "LONDON 14°C"
         };
 
-        if (mastheadTitleInput) mastheadTitleInput.value = savedSettings.title.replace(/<[^>]*>/g, "");
-        if (mastheadVolInput) mastheadVolInput.value = savedSettings.vol;
-        if (mastheadPriceInput) mastheadPriceInput.value = savedSettings.price;
-        if (mastheadEstInput) mastheadEstInput.value = savedSettings.est;
-        if (weatherCityInputSettings) weatherCityInputSettings.value = savedSettings.weather;
-    };
+        if (mastheadTitleInput) mastheadTitleInput.value = savedSettings.title ? savedSettings.title.replace(/<[^>]*>/g, "") : "";
+        if (mastheadVolInput) mastheadVolInput.value = savedSettings.vol || "";
+        if (mastheadPriceInput) mastheadPriceInput.value = savedSettings.price || "";
+        if (mastheadEstInput) mastheadEstInput.value = savedSettings.est || "";
+        if (weatherCityInputSettings) weatherCityInputSettings.value = savedSettings.weather || "";
+    }
 
     if (editorialForm) {
         editorialForm.onsubmit = (e) => {
             e.preventDefault();
             const config = {
-                title: `<span class='brand-color'>ANR</span> ${mastheadTitleInput.value.replace("ANR", "").trim()}`,
-                vol: mastheadVolInput.value.trim(),
-                price: mastheadPriceInput.value.trim(),
-                est: mastheadEstInput.value.trim(),
-                weather: weatherCityInputSettings.value.trim()
+                title: `<span class='brand-color'>ANR</span> ${(mastheadTitleInput ? mastheadTitleInput.value : "").replace("ANR", "").trim()}`,
+                vol: mastheadVolInput ? mastheadVolInput.value.trim() : "",
+                price: mastheadPriceInput ? mastheadPriceInput.value.trim() : "",
+                est: mastheadEstInput ? mastheadEstInput.value.trim() : "",
+                weather: weatherCityInputSettings ? weatherCityInputSettings.value.trim() : ""
             };
             localStorage.setItem("anr_editorial_settings", JSON.stringify(config));
             
-            // Sync to Firebase if connected
             if (isFirebaseConnected && firestoreDb) {
                 firestoreDb.collection("site_meta").doc("editorial").set(config)
                     .catch(err => console.error("Firebase editorial sync error:", err));
@@ -2235,13 +2281,12 @@ function initAdminPanel() {
         };
     }
 
-    // Ticker Bulletins Manager
-    const getStoredBulletins = () => {
+    function getStoredBulletins() {
         const stored = JSON.parse(localStorage.getItem("anr_ticker_bulletins"));
-        return Array.isArray(stored) && stored.length > 0 ? stored : TICKER_ITEMS_EN;
-    };
+        return Array.isArray(stored) && stored.length > 0 ? stored : (typeof TICKER_ITEMS_EN !== "undefined" ? TICKER_ITEMS_EN : []);
+    }
 
-    const renderBulletinsManager = () => {
+    function renderBulletinsManager() {
         if (!bulletinsManageList) return;
         bulletinsManageList.innerHTML = "";
         const bulletins = getStoredBulletins();
@@ -2262,14 +2307,14 @@ function initAdminPanel() {
             };
             bulletinsManageList.appendChild(row);
         });
-    };
+    }
 
-    const syncLiveTicker = () => {
+    function syncLiveTicker() {
         const bulletins = getStoredBulletins();
-        if (tickerContent) {
+        if (tickerContent && bulletins.length > 0) {
             tickerContent.innerHTML = bulletins.join(" &nbsp;&bull;&nbsp; ") + " &nbsp;&bull;&nbsp; " + bulletins.join(" &nbsp;&bull;&nbsp; ");
         }
-    };
+    }
 
     if (addBulletinBtn && newBulletinInput) {
         addBulletinBtn.onclick = () => {
@@ -2286,20 +2331,20 @@ function initAdminPanel() {
     }
 
     // ------------------------------------------
-    // 6. Tab 3: Ads Management
+    // 5. Tab 3: Ads Management
     // ------------------------------------------
-    const loadAdsInputs = () => {
+    function loadAdsInputs() {
         const savedAds = JSON.parse(localStorage.getItem("anr_custom_ads")) || { left: "", right: "" };
         if (leftAdTextarea) leftAdTextarea.value = savedAds.left || "";
         if (rightAdTextarea) rightAdTextarea.value = savedAds.right || "";
-    };
+    }
 
     if (adsForm) {
         adsForm.onsubmit = (e) => {
             e.preventDefault();
             const config = {
-                left: leftAdTextarea.value,
-                right: rightAdTextarea.value
+                left: leftAdTextarea ? leftAdTextarea.value : "",
+                right: rightAdTextarea ? rightAdTextarea.value : ""
             };
             localStorage.setItem("anr_custom_ads", JSON.stringify(config));
             renderCustomAds();
@@ -2317,10 +2362,10 @@ function initAdminPanel() {
     }
 
     // ------------------------------------------
-    // 7. Tab 4: Media & Assets Gallery
+    // 6. Tab 4: Media & Assets Gallery
     // ------------------------------------------
-    const renderMediaPresets = () => {
-        if (!mediaPresetGrid) return;
+    function renderMediaPresets() {
+        if (!mediaPresetGrid || typeof PRESET_MEDIA_ASSETS === "undefined") return;
         mediaPresetGrid.innerHTML = "";
 
         PRESET_MEDIA_ASSETS.forEach(asset => {
@@ -2338,9 +2383,9 @@ function initAdminPanel() {
             `;
 
             card.querySelector(".use-btn").onclick = () => {
-                imageInput.value = asset.url;
+                if (imageInput) imageInput.value = asset.url;
                 switchTab("tab-posts");
-                if (previewBox.style.display !== "none") updateLivePreview();
+                if (previewBox && previewBox.style.display !== "none") updateLivePreview();
                 showToast(`IMAGE APPLIED: ${asset.name}`);
             };
 
@@ -2354,14 +2399,14 @@ function initAdminPanel() {
 
             mediaPresetGrid.appendChild(card);
         });
-    };
+    }
 
     if (mediaTestBtn && mediaTestUrlInput) {
         mediaTestBtn.onclick = () => {
             const url = mediaTestUrlInput.value.trim();
             if (!url) return;
-            mediaPreviewImg.src = url;
-            mediaTestPreview.style.display = "block";
+            if (mediaPreviewImg) mediaPreviewImg.src = url;
+            if (mediaTestPreview) mediaTestPreview.style.display = "block";
         };
     }
 
@@ -2369,22 +2414,22 @@ function initAdminPanel() {
         mediaUseBtn.onclick = () => {
             const url = mediaTestUrlInput.value.trim();
             if (!url) return;
-            imageInput.value = url;
+            if (imageInput) imageInput.value = url;
             switchTab("tab-posts");
-            if (previewBox.style.display !== "none") updateLivePreview();
+            if (previewBox && previewBox.style.display !== "none") updateLivePreview();
             showToast("CUSTOM IMAGE URL APPLIED TO DISPATCH");
         };
     }
 
     // ------------------------------------------
-    // 8. Tab 5: Security Passcode, Firebase Cloud & Database Backup
+    // 7. Tab 5: Security Passcode, Firebase & Backup
     // ------------------------------------------
     if (passcodeChangeForm) {
         passcodeChangeForm.onsubmit = (e) => {
             e.preventDefault();
-            const currentPass = currentPasscodeInput.value;
-            const newPass = newPasscodeInput.value;
-            const confirmPass = confirmPasscodeInput.value;
+            const currentPass = currentPasscodeInput ? currentPasscodeInput.value : "";
+            const newPass = newPasscodeInput ? newPasscodeInput.value : "";
+            const confirmPass = confirmPasscodeInput ? confirmPasscodeInput.value : "";
 
             if (currentPass !== getMasterPasscode()) {
                 alert("Current passcode is incorrect.");
@@ -2402,12 +2447,13 @@ function initAdminPanel() {
             }
 
             localStorage.setItem("anr_admin_passcode", newPass);
-            passcodeChangeForm.reset();
-            showToast("MASTER TELEGRAPH KEY UPDATED");
+            if (currentPasscodeInput) currentPasscodeInput.value = "";
+            if (newPasscodeInput) newPasscodeInput.value = "";
+            if (confirmPasscodeInput) confirmPasscodeInput.value = "";
+            showToast("MASTER TELEGRAPH PASSCODE UPDATED");
         };
     }
 
-    // Firebase Cloud Connect / Disconnect / Push handlers
     if (firebaseSaveBtn && firebaseConfigInput) {
         firebaseSaveBtn.onclick = () => {
             const val = firebaseConfigInput.value.trim();
@@ -2451,14 +2497,12 @@ function initAdminPanel() {
             }
 
             try {
-                // 1. Gather all base articles + custom local articles
                 const customArticles = JSON.parse(localStorage.getItem("anr_custom_articles")) || [];
                 const allArticlesMap = new Map();
                 ARTICLES_DB.forEach(art => allArticlesMap.set(art.id, art));
                 customArticles.forEach(art => allArticlesMap.set(art.id, art));
                 const allArticles = Array.from(allArticlesMap.values());
 
-                // 2. Batch upload to Firestore 'dispatches'
                 const batch = firestoreDb.batch();
                 allArticles.forEach(art => {
                     const docRef = firestoreDb.collection("dispatches").doc(art.id);
@@ -2466,7 +2510,6 @@ function initAdminPanel() {
                 });
                 await batch.commit();
 
-                // 3. Upload editorial settings & tickers to Firestore
                 const editorialSettings = JSON.parse(localStorage.getItem("anr_editorial_settings")) || {
                     mastheadTitle: "ANR DAILY NEWS",
                     volNo: "VOL. CXXIV NO. 42",
@@ -2493,7 +2536,7 @@ function initAdminPanel() {
         };
     }
 
-    const exportBackupToTextarea = () => {
+    function exportBackupToTextarea() {
         const customArticles = JSON.parse(localStorage.getItem("anr_custom_articles")) || [];
         const customAds = JSON.parse(localStorage.getItem("anr_custom_ads")) || { left: "", right: "" };
         const editorialSettings = JSON.parse(localStorage.getItem("anr_editorial_settings")) || null;
@@ -2511,7 +2554,7 @@ function initAdminPanel() {
         if (backupTextarea) {
             backupTextarea.value = JSON.stringify(backupObj, null, 2);
         }
-    };
+    }
 
     if (backupBtn) {
         backupBtn.onclick = () => {
@@ -2571,7 +2614,7 @@ function initAdminPanel() {
 
     if (factoryResetBtn) {
         factoryResetBtn.onclick = () => {
-            const confirmed = confirm("⚠️ DANGER: Are you sure you want to perform a FACTORY RESET?\nThis will erase all custom articles, custom ads, ticker alerts, and restore the default passcode!");
+            const confirmed = confirm("⚠️ DANGER: Are you sure you want to perform a FACTORY RESET?\\nThis will erase all custom articles, custom ads, ticker alerts, and restore the default passcode!");
             if (confirmed) {
                 const secondConfirm = confirm("FINAL CONFIRMATION: Reset all database records to original seed state?");
                 if (secondConfirm) {
