@@ -16,6 +16,9 @@
 </head>
 
 <body>
+    <!-- Top Reading Progress Indicator -->
+    <div id="reading-progress-bar" class="reading-progress-bar"></div>
+
     <!-- Top Utility Bar: Theme, Search, Bookmark Count -->
     <header class="utility-bar">
         <div class="utility-left">
@@ -569,12 +572,15 @@
         </div>
     </div>
 
+    <!-- Persistent Bottom Floating Audio Narrator Dock -->
+    <div id="persistent-audio-dock" class="persistent-audio-dock" aria-hidden="true"></div>
+
     <!-- Firebase SDKs (Official Google CDN Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-    <!-- App Scripts -->
-    <script src="app.js"></script>
+    <!-- Modular App Scripts (ES Modules) -->
+    <script type="module" src="js/main.js"></script>
 </body>
 
 </html>

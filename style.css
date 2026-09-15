@@ -1799,6 +1799,291 @@ a {
 }
 
 /* -----------------------------------------
+   Modern Editorial UX: Reading Progress Bar
+----------------------------------------- */
+.reading-progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 0%;
+    background: var(--accent-red, #c0392b);
+    z-index: 10000;
+    transition: width 0.1s ease-out;
+    box-shadow: 0 1px 3px rgba(192, 57, 43, 0.4);
+}
+
+/* -----------------------------------------
+   Modern Editorial UX: Persistent Audio Dock
+----------------------------------------- */
+.persistent-audio-dock {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--paper-bg);
+    border-top: 2px solid var(--ink-black);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 9999;
+    padding: 0.6rem 1.5rem;
+    transform: translateY(120%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    backdrop-filter: blur(8px);
+}
+
+.persistent-audio-dock.active {
+    transform: translateY(0);
+}
+
+.audio-dock-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.audio-dock-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.audio-pulse-indicator {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 18px;
+}
+
+.audio-pulse-indicator span {
+    display: block;
+    width: 3px;
+    background: var(--accent-red, #c0392b);
+    border-radius: 1px;
+    animation: audioWave 1.2s ease-in-out infinite alternate;
+}
+
+.audio-pulse-indicator span:nth-child(1) { height: 60%; animation-delay: 0.1s; }
+.audio-pulse-indicator span:nth-child(2) { height: 100%; animation-delay: 0.3s; }
+.audio-pulse-indicator span:nth-child(3) { height: 40%; animation-delay: 0.2s; }
+
+@keyframes audioWave {
+    0% { height: 20%; }
+    100% { height: 100%; }
+}
+
+.audio-dock-info {
+    min-width: 0;
+}
+
+.audio-dock-status {
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: var(--accent-red, #c0392b);
+    display: block;
+    letter-spacing: 0.08em;
+}
+
+.audio-dock-title {
+    font-family: var(--font-serif-title);
+    font-size: 0.95rem;
+    margin: 0.1rem 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--ink-black);
+}
+
+.audio-dock-author {
+    font-size: 0.72rem;
+    opacity: 0.75;
+}
+
+.audio-dock-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-shrink: 0;
+}
+
+.dock-control-btn {
+    background: var(--paper-bg);
+    border: 1px solid var(--border-color);
+    color: var(--ink-black);
+    font-size: 0.75rem;
+    padding: 0.35rem 0.7rem;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s ease;
+    font-weight: bold;
+}
+
+.dock-control-btn:hover {
+    background: var(--ink-black);
+    color: var(--paper-bg);
+}
+
+.dock-stop-btn {
+    border-color: var(--accent-red, #b00);
+    color: var(--accent-red, #b00);
+}
+
+.dock-stop-btn:hover {
+    background: var(--accent-red, #b00);
+    color: #fff;
+}
+
+/* -----------------------------------------
+   Modern Editorial UX: Smart Brevity Card
+----------------------------------------- */
+.smart-brevity-card {
+    background: rgba(0, 0, 0, 0.025);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--ink-black);
+    padding: 0.9rem 1.2rem;
+    margin: 1.2rem 0;
+    border-radius: 2px;
+}
+
+.brevity-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.6rem;
+}
+
+.brevity-badge {
+    background: var(--ink-black);
+    color: var(--paper-bg);
+    font-size: 0.68rem;
+    font-weight: bold;
+    padding: 0.15rem 0.45rem;
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+}
+
+.brevity-title-label {
+    font-size: 0.75rem;
+    font-weight: bold;
+    opacity: 0.85;
+    letter-spacing: 0.05em;
+}
+
+.brevity-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.brevity-list li {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 0.4rem;
+    color: var(--ink-black);
+}
+
+/* -----------------------------------------
+   Modern Editorial UX: Quote Clipping Tooltip
+----------------------------------------- */
+.quote-clip-tooltip {
+    position: absolute;
+    z-index: 10001;
+    display: none;
+    background: var(--ink-black);
+    color: var(--paper-bg);
+    padding: 0.3rem 0.6rem;
+    border-radius: 3px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    animation: fadeInTooltip 0.15s ease-out;
+}
+
+.quote-clip-tooltip.active {
+    display: block;
+}
+
+.quote-clip-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: var(--ink-black) transparent transparent transparent;
+}
+
+.clip-btn {
+    background: none;
+    border: none;
+    color: var(--paper-bg);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0;
+}
+
+@keyframes fadeInTooltip {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Dynamic Editorial Drop Caps */
+.drop-cap-lead::first-letter {
+    font-family: var(--font-serif-title);
+    font-size: 3.2rem;
+    float: left;
+    line-height: 0.8;
+    margin-right: 0.6rem;
+    margin-top: 0.2rem;
+    font-weight: bold;
+    color: var(--ink-black);
+}
+
+.reader-canvas-content {
+    max-width: 780px;
+    margin: 0 auto;
+}
+
+.reader-title {
+    font-family: var(--font-serif-title);
+    font-size: 1.85rem;
+    line-height: 1.25;
+    margin: 0.4rem 0 0.8rem 0;
+    color: var(--ink-black);
+}
+
+.reader-cover-img-wrap {
+    margin: 1.2rem 0;
+    border: 1px solid var(--border-light);
+    background: #000;
+}
+
+.reader-cover-img-wrap img {
+    width: 100%;
+    max-height: 380px;
+    object-fit: cover;
+    display: block;
+    filter: grayscale(1) contrast(1.1);
+}
+
+/* Responsive adjustments for Audio Dock */
+@media (max-width: 768px) {
+    .persistent-audio-dock {
+        padding: 0.5rem 0.8rem;
+    }
+    .audio-dock-title {
+        max-width: 180px;
+    }
+    .audio-dock-controls #audio-dock-view-btn {
+        display: none;
+    }
+}
+
+/* -----------------------------------------
    Print Layout Style Sheet
 ----------------------------------------- */
 @media print {
@@ -1817,6 +2102,9 @@ a {
     .modal-footer,
     .modal-controls,
     .weather-city-input,
+    .persistent-audio-dock,
+    .reading-progress-bar,
+    .quote-clip-tooltip,
     #live-time,
     #theme-toggle,
     #bookmark-toggle-btn {
